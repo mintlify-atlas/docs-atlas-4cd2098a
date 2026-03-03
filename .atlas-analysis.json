@@ -1,0 +1,137 @@
+{
+  "projectType": "api-service",
+  "projectName": "Inmobiliaria API",
+  "projectDescription": "REST API backend for real estate property management with authentication, search, and file uploads",
+  "theme": "maple",
+  "primaryColor": "#2563eb",
+  "lightColor": "#60a5fa",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Authentication",
+            "pages": [
+              "auth/overview",
+              "auth/email-password",
+              "auth/oauth",
+              "auth/sessions"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment-variables",
+              "configuration/database",
+              "configuration/storage"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/overview",
+              "deployment/database-migrations",
+              "deployment/production"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Properties",
+            "pages": [
+              "api/properties/list",
+              "api/properties/create",
+              "api/properties/get",
+              "api/properties/update",
+              "api/properties/delete",
+              "api/properties/search",
+              "api/properties/images"
+            ]
+          },
+          {
+            "group": "Users",
+            "pages": [
+              "api/users/profile",
+              "api/users/update",
+              "api/users/favorites"
+            ]
+          },
+          {
+            "group": "Metadata",
+            "pages": [
+              "api/metadata/property-types",
+              "api/metadata/operation-types",
+              "api/metadata/characteristics"
+            ]
+          },
+          {
+            "group": "Admin",
+            "pages": [
+              "api/admin/stats",
+              "api/admin/users",
+              "api/admin/properties"
+            ]
+          },
+          {
+            "group": "Contact",
+            "pages": [
+              "api/contact/submit"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Property CRUD operations with advanced filtering and search",
+    "Better Auth integration with email/password and OAuth",
+    "Multi-storage support (local filesystem and AWS S3)",
+    "Image upload with automatic variant generation",
+    "Role-based access control (user/admin)",
+    "Real-time database health monitoring"
+  ],
+  "publicApiSurface": [
+    "GET /api/properties - List properties with filtering",
+    "POST /api/properties - Create new property",
+    "GET /api/properties/:id - Get property details",
+    "PUT /api/properties/:id - Update property",
+    "DELETE /api/properties/:id - Delete property",
+    "GET /api/properties/search - Search properties",
+    "POST /api/properties/:id/images - Upload property images",
+    "GET /api/users/profile - Get user profile",
+    "PUT /api/users/profile - Update user profile",
+    "GET /api/users/favorites - Get user favorites",
+    "POST /api/users/favorites - Add to favorites",
+    "GET /api/metadata/all - Get all metadata",
+    "GET /api/metadata/property-types - Get property types",
+    "GET /api/metadata/operation-types - Get operation types",
+    "GET /api/admin/stats - Get admin statistics",
+    "GET /api/admin/users - List all users",
+    "POST /api/contact - Submit contact form",
+    "POST /api/auth/sign-up/email - Email signup",
+    "POST /api/auth/sign-in/email - Email signin",
+    "GET /api/auth/sign-in/google - Google OAuth",
+    "GET /api/session - Get current session"
+  ]
+}
