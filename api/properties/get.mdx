@@ -1,12 +1,20 @@
 ---
 title: "Get Property"
 api: "GET /api/properties/:id"
-description: "Retrieve a single property by ID"
+description: "Retrieve a single property by ID or slug"
 ---
 
 ## Overview
 
-Retrieve detailed information about a specific property by its ID. View count is automatically incremented for non-owner views.
+Retrieve detailed information about a specific property by its numeric ID or SEO-friendly URL slug. View count is automatically incremented for non-owner views.
+
+<Note>
+  This API supports two endpoints:
+  - `GET /api/properties/:id` - Get property by numeric ID
+  - `GET /api/properties/slug/:slug` - Get property by URL slug
+  
+  Both endpoints return the same response format.
+</Note>
 
 ## Authentication
 
@@ -16,8 +24,16 @@ Retrieve detailed information about a specific property by its ID. View count is
 
 ## Path Parameters
 
+### Get by ID
+
 <ParamField path="id" type="number" required>
-  The property ID.
+  The numeric property ID. Used with `/api/properties/:id`
+</ParamField>
+
+### Get by Slug
+
+<ParamField path="slug" type="string" required>
+  The SEO-friendly URL slug. Used with `/api/properties/slug/:slug`. Example: `hermoso-departamento-palermo-4d`
 </ParamField>
 
 ## Response
@@ -228,10 +244,19 @@ Returns the same property object structure as the list endpoint, with all fields
   </ResponseField>
 </ResponseField>
 
-## Example Request
+## Example Requests
+
+### By ID
 
 ```bash
 curl -X GET "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### By Slug
+
+```bash
+curl -X GET "https://api.example.com/api/properties/slug/hermoso-departamento-palermo-4d" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
