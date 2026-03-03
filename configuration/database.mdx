@@ -1,0 +1,617 @@
+---
+title: 'Database Configuration'
+description: 'PostgreSQL database setup, schema overview, and Drizzle ORM configuration'
+icon: 'database'
+---
+
+## Overview
+
+The Inmobiliaria API uses **PostgreSQL** as its database and **Drizzle ORM** for type-safe database access and migrations.
+
+## Requirements
+
+- PostgreSQL 12 or higher
+- Node.js 18 or higher
+- Database with `public` schema access
+
+## Quick Setup
+
+<Steps>
+  <Step title="Install PostgreSQL">
+    Install PostgreSQL on your system:
+    
+    <CodeGroup>
+    ```bash macOS
+    brew install postgresql@15
+    brew services start postgresql@15
+    ```
+    
+    ```bash Ubuntu/Debian
+    sudo apt update
+    sudo apt install postgresql postgresql-contrib
+    sudo systemctl start postgresql
+    ```
+    
+    ```bash Docker
+    docker run -d \
+      --name inmobiliaria-postgres \
+      -e POSTGRES_PASSWORD=mypassword \
+      -e POSTGRES_DB=inmobiliaria \
+      -p 5432:5432 \
+      postgres:15
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Create Database">
+    Create a database for the application:
+    
+    ```sql
+    CREATE DATABASE inmobiliaria;
+    ```
+    
+    Or using `psql`:
+    
+    ```bash
+    psql -U postgres -c "CREATE DATABASE inmobiliaria;"
+    ```
+  </Step>
+  
+  <Step title="Set DATABASE_URL">
+    Add the connection string to your `.env` file:
+    
+    ```bash .env
+    DATABASE_URL=postgresql://postgres:password@localhost:5432/inmobiliaria
+    ```
+    
+    **Format:** `postgresql://[user]:[password]@[host]:[port]/[database]`
+  </Step>
+  
+  <Step title="Run Migrations">
+    Apply the database schema:
+    
+    ```bash
+    npm run db:push
+    ```
+    
+    Or use migration files:
+    
+    ```bash
+    npm run db:migrate:run
+    ```
+  </Step>
+  
+  <Step title="Seed Data (Optional)">
+    Populate with sample data for development:
+    
+    ```bash
+    npm run db:seed
+    ```
+  </Step>
+</Steps>
+
+## Drizzle Configuration
+
+The database is configured in `drizzle.config.ts`:
+
+```typescript drizzle.config.ts
+import { defineConfig } from "drizzle-kit";
+
+// Ensure search_path is set for migrations
+let dbUrl = process.env.DATABASE_URL!;
+if (dbUrl && !dbUrl.includes("search_path")) {
+  const separator = dbUrl.includes("?") ? "&" : "?";
+  dbUrl += `${separator}schema=public`;
+}
+
+export default defineConfig({
+  out: "./src/db/migrations",
+  schema: "./src/db/schema/*",
+  dialect: "postgresql",
+  dbCredentials: {
+    url: dbUrl,
+  },
+  schemaFilter: ["public"],
+  verbose: true,
+  strict: true,
+});
+```
+
+### Configuration Options
+
+| Option | Value | Description |
+|--------|-------|-------------|
+| `out` | `./src/db/migrations` | Directory for migration files |
+| `schema` | `./src/db/schema/*` | Drizzle schema definition files |
+| `dialect` | `postgresql` | Database type |
+| `schemaFilter` | `["public"]` | Use PostgreSQL `public` schema |
+| `verbose` | `true` | Show detailed migration logs |
+| `strict` | `true` | Enable strict mode for schema validation |
+
+## Database Schema
+
+The application uses a comprehensive schema organized into several domains.
+
+### Authentication Tables
+
+<AccordionGroup>
+  <Accordion title="users" icon="user">
+    Core user accounts table (Better Auth compatible).
+    
+    **Schema Definition:** `src/db/schema/users.ts`
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `id` | text | Primary key (UUID) |
+    | `name` | text | User's display name |
+    | `email` | text | Unique email address |
+    | `email_verified` | boolean | Email verification status |
+    | `image` | text | Profile image URL |
+    | `role` | user_role | `user` or `admin` |
+    | `created_at` | timestamp | Account creation time |
+    | `updated_at` | timestamp | Last update time |
+  </Accordion>
+  
+  <Accordion title="sessions" icon="key">
+    Active user sessions.
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `id` | text | Primary key |
+    | `user_id` | text | References `users.id` |
+    | `token` | text | Unique session token |
+    | `expires_at` | timestamp | Session expiration |
+    | `ip_address` | text | Client IP |
+    | `user_agent` | text | Browser/device info |
+  </Accordion>
+  
+  <Accordion title="accounts" icon="link">
+    OAuth provider accounts linked to users.
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `id` | text | Primary key |
+    | `user_id` | text | References `users.id` |
+    | `provider_id` | text | OAuth provider (google, etc.) |
+    | `account_id` | text | Provider's user ID |
+    | `access_token` | text | OAuth access token |
+    | `refresh_token` | text | OAuth refresh token |
+  </Accordion>
+  
+  <Accordion title="verification" icon="envelope">
+    Email verification tokens.
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `id` | text | Primary key |
+    | `identifier` | text | Email or user identifier |
+    | `value` | text | Verification token |
+    | `expires_at` | timestamp | Token expiration |
+  </Accordion>
+</AccordionGroup>
+
+### Property Management Tables
+
+<AccordionGroup>
+  <Accordion title="properties" icon="house">
+    Main properties listing table.
+    
+    **Schema Definition:** `src/db/schema/properties.ts`
+    
+    **Key Columns:**
+    - Basic info: `title`, `description`, `url_slug`
+    - Classification: `property_type_id`, `property_subtype_id`, `operation_type_id`
+    - Pricing: `price`, `original_price`, `currency_id`, `expenses`
+    - Size: `surface_covered_m2`, `surface_uncovered_m2`, `lot_size_m2`
+    - Rooms: `rooms`, `bedrooms`, `bathrooms`
+    - Features: `has_balcony`, `has_terrace`, `has_garden`, `garage_spaces`
+    - Status: `status_id`, `published_at`, `views_count`
+    - Ownership: `user_id`
+    
+    **Relationships:**
+    - References multiple metadata tables
+    - One-to-one with `property_locations`
+    - One-to-many with `property_images`
+  </Accordion>
+  
+  <Accordion title="property_locations" icon="location-dot">
+    Property address and geolocation.
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `property_id` | integer | References `properties.id` (unique) |
+    | `street` | varchar | Street name |
+    | `street_number` | varchar | Street number |
+    | `neighborhood` | varchar | Neighborhood/barrio |
+    | `city` | varchar | City name |
+    | `province` | varchar | Province/state |
+    | `latitude` | decimal(10,7) | GPS latitude |
+    | `longitude` | decimal(10,7) | GPS longitude |
+    | `show_exact_address` | boolean | Privacy control |
+  </Accordion>
+  
+  <Accordion title="property_images" icon="image">
+    Property photos with variants.
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `property_id` | integer | References `properties.id` |
+    | `image_key` | text | Storage key (main variant) |
+    | `image_url` | text | Public URL |
+    | `order_index` | integer | Display order |
+    | `is_main` | boolean | Featured image flag |
+    | `rotation_degrees` | integer | 0, 90, 180, or 270 |
+    
+    <Note>
+      Images are stored with variants: `-lg.webp` (large) and `-thumb.webp` (thumbnail).
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+### Metadata Tables
+
+<AccordionGroup>
+  <Accordion title="property_types" icon="grid">
+    Property categories (Casa, Departamento, etc.).
+    
+    **Pre-populated with:** 14 types including Casa, Departamento, PH, Terreno, Local comercial, etc.
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `id` | serial | Primary key |
+    | `name` | varchar | Display name |
+    | `slug` | varchar | URL-friendly identifier |
+  </Accordion>
+  
+  <Accordion title="property_subtypes" icon="list">
+    Subcategories within property types.
+    
+    **Examples:** Casa en country, Monoambiente, PH con jardín
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `id` | serial | Primary key |
+    | `type_id` | integer | References `property_types.id` |
+    | `name` | varchar | Display name |
+    | `slug` | varchar | URL-friendly identifier |
+  </Accordion>
+  
+  <Accordion title="operation_types" icon="handshake">
+    Transaction types: Venta, Alquiler, Alquiler temporal, Permuta.
+  </Accordion>
+  
+  <Accordion title="property_statuses" icon="signal">
+    Status: Activo, Pendiente, Vendido, Alquilado, Pausado.
+  </Accordion>
+  
+  <Accordion title="property_conditions" icon="hammer">
+    Condition: A estrenar, Bueno, Muy bueno, Excelente, Reciclado, Para refaccionar.
+  </Accordion>
+  
+  <Accordion title="currencies" icon="dollar-sign">
+    Supported currencies: ARS (Peso Argentino), USD (Dólar), EUR (Euro).
+  </Accordion>
+</AccordionGroup>
+
+### Property Characteristics
+
+<Accordion title="property_characteristics_all" icon="list-check">
+  Unified characteristics table supporting both predefined and custom features.
+  
+  | Column | Type | Description |
+  |--------|------|-------------|
+  | `id` | uuid | Primary key |
+  | `property_id` | integer | References `properties.id` |
+  | `label` | varchar(150) | Characteristic name |
+  | `created_at` | timestamp | When added |
+  
+  **Constraints:**
+  - Unique per property (case-insensitive, trimmed)
+  - Label length: 1-150 characters
+  
+  **Examples:** Parrilla, Pileta, Aire acondicionado, SUM, Gimnasio, Seguridad 24hs
+</Accordion>
+
+### Contact & Engagement
+
+<AccordionGroup>
+  <Accordion title="contact_requests" icon="message">
+    Property valuation and contact form submissions.
+    
+    **Schema Definition:** `src/db/schema/contact.ts`
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `id` | uuid | Primary key |
+    | `name` | varchar | Contact name |
+    | `email` | varchar | Contact email |
+    | `phone` | varchar | Contact phone |
+    | `available_hours` | varchar | Preferred contact time |
+    | `operation_type` | varchar | Venta/Alquiler |
+    | `property_type` | varchar | Type of property |
+    | `location` | text | Property location |
+    | `description` | text | Details |
+    | `status` | enum | pending/contacted/completed |
+    | `user_id` | text | Optional linked user |
+    | `is_deleted` | boolean | Soft delete flag |
+  </Accordion>
+  
+  <Accordion title="user_favorites" icon="heart">
+    User saved properties.
+    
+    | Column | Type | Description |
+    |--------|------|-------------|
+    | `id` | serial | Primary key |
+    | `user_id` | text | References `users.id` |
+    | `property_id` | integer | References `properties.id` |
+    | `created_at` | timestamp | When favorited |
+    
+    **Constraint:** Unique per user-property pair
+  </Accordion>
+</AccordionGroup>
+
+## Database Scripts
+
+Available npm scripts for database management:
+
+```json package.json
+{
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:migrate:run": "tsx src/db/migrate.ts",
+    "db:setup": "node scripts/setup-database.js"
+  }
+}
+```
+
+### Command Reference
+
+<CodeGroup>
+```bash Generate Migrations
+# Generate SQL migration files from schema changes
+npm run db:generate
+
+# Output: src/db/migrations/*.sql
+```
+
+```bash Apply Migrations
+# Run pending migrations
+npm run db:migrate:run
+
+# Or use Drizzle Kit
+npm run db:migrate
+```
+
+```bash Push Schema
+# Push schema changes directly without migrations
+# ⚠️ Use in development only
+npm run db:push
+```
+
+```bash Seed Database
+# Populate with sample data
+npm run db:seed
+
+# Only runs in NODE_ENV=development
+```
+
+```bash Drizzle Studio
+# Visual database browser
+npm run db:studio
+
+# Opens at: https://local.drizzle.studio
+```
+</CodeGroup>
+
+## Connection Configuration
+
+The database connection is configured in `src/db/index.ts`:
+
+```typescript src/db/index.ts
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "./schema";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // SSL configuration for production
+  ssl: process.env.DATABASE_URL?.includes("sslmode=require")
+    ? { rejectUnauthorized: false }
+    : false,
+});
+
+export const db = drizzle(pool, { schema });
+```
+
+### Connection Pooling
+
+The application uses `pg` connection pooling with defaults:
+
+- **Max connections:** 10 (pg default)
+- **Idle timeout:** 10 seconds
+- **Connection timeout:** 0 (no timeout)
+
+To customize:
+
+```typescript
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20, // max connections
+  idleTimeoutMillis: 30000, // 30 seconds
+  connectionTimeoutMillis: 2000, // 2 seconds
+});
+```
+
+## Health Checks
+
+The API includes database health check endpoints:
+
+<CodeGroup>
+```bash Root Endpoint
+GET /
+
+Response:
+{
+  "status": "ok",
+  "message": "Inmobiliaria API Server",
+  "timestamp": "2026-03-03T10:30:00.000Z",
+  "database": {
+    "status": "healthy",
+    "latency": "5ms"
+  }
+}
+```
+
+```bash Health Endpoint
+GET /health
+
+Response (200 OK):
+{
+  "status": "ok",
+  "database": {
+    "status": "healthy",
+    "latency": "3ms"
+  },
+  "timestamp": "2026-03-03T10:30:00.000Z"
+}
+
+Response (503 Service Unavailable):
+{
+  "status": "error",
+  "database": {
+    "status": "unhealthy",
+    "error": "Connection refused"
+  },
+  "timestamp": "2026-03-03T10:30:00.000Z"
+}
+```
+</CodeGroup>
+
+## Production Considerations
+
+<AccordionGroup>
+  <Accordion title="SSL Connections">
+    Enable SSL for production databases:
+    
+    ```bash
+    DATABASE_URL=postgresql://user:pass@host:5432/db?sslmode=require
+    ```
+    
+    The application automatically detects `sslmode=require` and configures SSL.
+  </Accordion>
+  
+  <Accordion title="Connection Limits">
+    - Monitor active connections
+    - Configure `max` pool size based on load
+    - Use connection pooling services (PgBouncer) for high traffic
+    - Most cloud providers (Heroku, Render) include connection pooling
+  </Accordion>
+  
+  <Accordion title="Migrations">
+    **Development:**
+    ```bash
+    npm run db:push  # Quick schema updates
+    ```
+    
+    **Production:**
+    ```bash
+    npm run db:generate  # Generate migration SQL
+    npm run db:migrate:run  # Apply migrations
+    ```
+    
+    - Always use migrations in production
+    - Review generated SQL before applying
+    - Backup database before major migrations
+  </Accordion>
+  
+  <Accordion title="Backups">
+    Regular backup strategies:
+    
+    ```bash
+    # Full backup
+    pg_dump -h host -U user -d inmobiliaria > backup.sql
+    
+    # Schema only
+    pg_dump -h host -U user -d inmobiliaria --schema-only > schema.sql
+    
+    # Data only
+    pg_dump -h host -U user -d inmobiliaria --data-only > data.sql
+    ```
+    
+    **Automated:** Use your hosting provider's backup features
+  </Accordion>
+  
+  <Accordion title="Indexes">
+    The schema includes performance indexes:
+    
+    - `idx_sessions_token` - Fast session lookups
+    - `idx_sessions_user_id` - User's sessions
+    - `idx_properties_type` - Filter by property type
+    - `idx_properties_operation` - Filter by operation
+    - `idx_locations_city` - Location-based search
+    - `idx_properties_search` - Full-text search (GIN index)
+    
+    Monitor slow queries and add indexes as needed.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Refused">
+    **Error:** `ECONNREFUSED` or "Connection refused"
+    
+    **Solutions:**
+    - Verify PostgreSQL is running: `pg_isready`
+    - Check host/port in `DATABASE_URL`
+    - Verify firewall allows connections
+    - For Docker: check container is running
+  </Accordion>
+  
+  <Accordion title="Authentication Failed">
+    **Error:** "password authentication failed"
+    
+    **Solutions:**
+    - Verify username and password in `DATABASE_URL`
+    - Check `pg_hba.conf` authentication method
+    - Reset password: `ALTER USER postgres PASSWORD 'newpassword';`
+  </Accordion>
+  
+  <Accordion title="Database Does Not Exist">
+    **Error:** 'database "inmobiliaria" does not exist'
+    
+    **Solution:**
+    ```bash
+    psql -U postgres -c "CREATE DATABASE inmobiliaria;"
+    ```
+  </Accordion>
+  
+  <Accordion title="Schema/Table Not Found">
+    **Error:** 'relation "users" does not exist'
+    
+    **Solutions:**
+    - Run migrations: `npm run db:push` or `npm run db:migrate:run`
+    - Verify `schemaFilter: ["public"]` in drizzle.config.ts
+    - Check search_path: `SHOW search_path;`
+  </Accordion>
+  
+  <Accordion title="Too Many Connections">
+    **Error:** "sorry, too many clients already"
+    
+    **Solutions:**
+    - Reduce pool `max` connections
+    - Close idle connections
+    - Increase PostgreSQL `max_connections`
+    - Use connection pooling service (PgBouncer)
+  </Accordion>
+</AccordionGroup>
+
+## See Also
+
+- [Environment Variables](/configuration/environment-variables) - Required database configuration
+- [Storage Configuration](/configuration/storage) - File upload setup
+- [API Reference](/api/overview) - Database-backed endpoints

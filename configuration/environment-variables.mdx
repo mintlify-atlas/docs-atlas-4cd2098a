@@ -1,0 +1,435 @@
+---
+title: 'Environment Variables'
+description: 'Complete reference for all environment variables used in the Inmobiliaria API'
+icon: 'gear'
+---
+
+## Overview
+
+The Inmobiliaria API uses environment variables for configuration. In development, these are loaded from a `.env` file using `dotenv`. In production, set these directly in your hosting environment.
+
+<Note>
+  In production environments, `dotenv` is not loaded. Ensure all required variables are set in your deployment platform.
+</Note>
+
+## Required Variables
+
+These variables must be set for the application to function properly.
+
+### Database Configuration
+
+<ParamField path="DATABASE_URL" type="string" required>
+  PostgreSQL connection string with credentials and database name.
+  
+  **Format:** `postgresql://user:password@host:port/database`
+  
+  **Example:** `postgresql://postgres:mypassword@localhost:5432/inmobiliaria`
+  
+  <Note>
+    If the URL doesn't include `search_path`, the application automatically appends `?schema=public` or `&schema=public` to ensure migrations target the correct schema.
+  </Note>
+  
+  **SSL Support:** Append `?sslmode=require` for SSL connections (common in production).
+</ParamField>
+
+### Authentication (Better Auth)
+
+<ParamField path="BETTER_AUTH_SECRET" type="string" required>
+  Secret key for signing and encrypting authentication tokens and cookies.
+  
+  **Format:** Long random string (minimum 32 characters recommended)
+  
+  **Example:** `Y2bzxRWDLe8q90dEwxfAWu8i1NNAgCI1`
+  
+  <Warning>
+    Generate a cryptographically secure random string. Never commit this to version control or share publicly.
+  </Warning>
+  
+  **Generate with:** `openssl rand -base64 32`
+</ParamField>
+
+<ParamField path="BETTER_AUTH_URL" type="string" required>
+  The base URL where the API server is running.
+  
+  **Development:** `http://localhost:10000`
+  
+  **Production:** `https://api.yourdomain.com`
+  
+  <Note>
+    This URL is used for Better Auth callbacks and must match your actual API endpoint.
+  </Note>
+</ParamField>
+
+<ParamField path="FRONTEND_URL" type="string" required>
+  The URL of your frontend application.
+  
+  **Development:** `http://localhost:5173`
+  
+  **Production:** `https://yourdomain.com`
+  
+  **Used for:**
+  - CORS configuration
+  - Email verification redirect URLs
+  - Password reset redirect URLs
+  - OAuth callback URLs
+</ParamField>
+
+### Email Configuration
+
+<ParamField path="RESEND_API_KEY" type="string" required>
+  API key from [Resend](https://resend.com) for sending transactional emails.
+  
+  **Format:** `re_xxxxxxxxxxxxxxxxxxxxxxxxxx`
+  
+  **Used for:**
+  - Email verification
+  - Password reset emails
+  - Contact form notifications
+  
+  **Get your key:** [Resend Dashboard](https://resend.com/api-keys)
+</ParamField>
+
+<ParamField path="EMAIL_FROM" type="string" required>
+  The sender email address for outgoing emails.
+  
+  **Format:** Must be a verified domain in Resend
+  
+  **Example:** `noreply@yourdomain.com`
+  
+  <Warning>
+    The email address must use a domain you've verified in Resend. Using an unverified domain will cause email sending to fail.
+  </Warning>
+</ParamField>
+
+<ParamField path="BUSINESS_EMAIL" type="string" required>
+  Email address where contact form submissions are sent.
+  
+  **Example:** `info@yourbusiness.com`
+  
+  **Purpose:** Receives property valuation requests and contact inquiries from the website.
+</ParamField>
+
+## Optional Variables
+
+### OAuth Providers
+
+<ParamField path="GOOGLE_CLIENT_ID" type="string" optional>
+  Google OAuth 2.0 client ID for Google Sign-In.
+  
+  **Example:** `123456789-abcdefghijklmnop.apps.googleusercontent.com`
+  
+  **Setup:** [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+  
+  <Note>
+    Both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` must be set to enable Google authentication.
+  </Note>
+</ParamField>
+
+<ParamField path="GOOGLE_CLIENT_SECRET" type="string" optional>
+  Google OAuth 2.0 client secret.
+  
+  **Example:** `GOCSPX-xxxxxxxxxxxxxxxxxxxxx`
+  
+  <Warning>
+    Keep this secret secure. Never expose it in client-side code or version control.
+  </Warning>
+</ParamField>
+
+### Storage Configuration
+
+<ParamField path="STORAGE_DRIVER" type="string" default="local">
+  Storage backend for uploaded images.
+  
+  **Options:**
+  - `local` - Store files on the server filesystem
+  - `s3` - Store files in AWS S3 or S3-compatible storage (R2, B2, MinIO)
+  
+  **Example:** `s3`
+  
+  See [Storage Configuration](/configuration/storage) for detailed setup.
+</ParamField>
+
+<ParamField path="UPLOAD_DIR" type="string" default="uploads">
+  Directory path for local file storage (only used when `STORAGE_DRIVER=local`).
+  
+  **Default:** `uploads` (relative to project root)
+  
+  **Example:** `/var/www/uploads` or `./public/uploads`
+  
+  <Note>
+    The application automatically creates this directory if it doesn't exist.
+  </Note>
+</ParamField>
+
+<ParamField path="PUBLIC_UPLOAD_URL_BASE" type="string" optional>
+  Base URL for accessing uploaded files.
+  
+  **For local storage:** `/uploads` (default)
+  
+  **For S3/CDN:** `https://cdn.yourdomain.com`
+  
+  **Examples:**
+  - Local: `/uploads` or `https://yourdomain.com/uploads`
+  - S3: `https://mybucket.s3.us-east-1.amazonaws.com`
+  - CloudFront: `https://d111111abcdef8.cloudfront.net`
+  - Cloudflare R2: `https://pub-xxxxx.r2.dev`
+</ParamField>
+
+### AWS S3 Configuration
+
+<Info>
+  Only required when `STORAGE_DRIVER=s3`. Also compatible with S3-compatible services like Cloudflare R2, Backblaze B2, and MinIO.
+</Info>
+
+<ParamField path="S3_BUCKET" type="string" optional>
+  S3 bucket name for storing uploaded files.
+  
+  **Example:** `inmobiliaria-uploads`
+  
+  **Required when:** `STORAGE_DRIVER=s3`
+</ParamField>
+
+<ParamField path="S3_REGION" type="string" optional>
+  AWS region where your S3 bucket is located.
+  
+  **Example:** `us-east-1`, `eu-west-1`, `auto` (for Cloudflare R2)
+  
+  **Required when:** `STORAGE_DRIVER=s3`
+</ParamField>
+
+<ParamField path="S3_ACCESS_KEY_ID" type="string" optional>
+  AWS access key ID with permissions to read/write/delete objects in the S3 bucket.
+  
+  **Example:** `AKIAIOSFODNN7EXAMPLE`
+  
+  **Required when:** `STORAGE_DRIVER=s3`
+  
+  **IAM Permissions needed:**
+  - `s3:PutObject`
+  - `s3:GetObject`
+  - `s3:DeleteObject`
+</ParamField>
+
+<ParamField path="S3_SECRET_ACCESS_KEY" type="string" optional>
+  AWS secret access key corresponding to the access key ID.
+  
+  **Example:** `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`
+  
+  **Required when:** `STORAGE_DRIVER=s3`
+  
+  <Warning>
+    Keep this secret secure. Never commit to version control.
+  </Warning>
+</ParamField>
+
+<ParamField path="S3_ENDPOINT" type="string" optional>
+  Custom S3 endpoint for S3-compatible services.
+  
+  **When to use:** Only needed for non-AWS S3 services
+  
+  **Examples:**
+  - Cloudflare R2: `https://[account-id].r2.cloudflarestorage.com`
+  - Backblaze B2: `https://s3.us-west-000.backblazeb2.com`
+  - MinIO: `https://minio.yourdomain.com`
+  
+  <Note>
+    Leave empty/unset when using AWS S3. The SDK will use the standard AWS endpoint.
+  </Note>
+</ParamField>
+
+### Upload Limits
+
+<ParamField path="MAX_UPLOAD_SIZE_MB" type="number" default="10">
+  Maximum file size for image uploads in megabytes.
+  
+  **Default:** `10` (10 MB)
+  
+  **Example:** `20` (for 20 MB limit)
+  
+  **Applied to:** Individual image files
+</ParamField>
+
+<ParamField path="MAX_UPLOAD_FILES" type="number" default="10">
+  Maximum number of files that can be uploaded in a single request.
+  
+  **Default:** `10`
+  
+  **Example:** `15` (allow up to 15 images per property)
+</ParamField>
+
+### Server Configuration
+
+<ParamField path="PORT" type="number" default="3000">
+  Port number for the API server.
+  
+  **Default:** `3000`
+  
+  **Example:** `8080`, `10000`
+  
+  <Note>
+    In many cloud platforms (Heroku, Render, etc.), this is set automatically by the platform.
+  </Note>
+</ParamField>
+
+<ParamField path="NODE_ENV" type="string" default="development">
+  Node.js environment mode.
+  
+  **Options:**
+  - `development` - Enables detailed logging, loads `.env` file
+  - `production` - Optimized for production, hides sensitive errors
+  
+  **Effects:**
+  - Cookie security settings (secure flag)
+  - Error message verbosity
+  - `.env` file loading (disabled in production)
+  - Logging levels
+</ParamField>
+
+## Environment File Template
+
+```bash .env
+# Database
+DATABASE_URL=postgresql://postgres:password@localhost:5432/inmobiliaria
+
+# Authentication (Better Auth)
+BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars
+BETTER_AUTH_URL=http://localhost:10000
+FRONTEND_URL=http://localhost:5173
+
+# Email (Resend)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+EMAIL_FROM=noreply@yourdomain.com
+BUSINESS_EMAIL=info@yourbusiness.com
+
+# OAuth (Optional)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-your-google-client-secret
+
+# Storage
+STORAGE_DRIVER=local
+UPLOAD_DIR=uploads
+PUBLIC_UPLOAD_URL_BASE=/uploads
+
+# AWS S3 (only if STORAGE_DRIVER=s3)
+# S3_BUCKET=your-bucket-name
+# S3_REGION=us-east-1
+# S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+# S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+# S3_ENDPOINT=https://account-id.r2.cloudflarestorage.com
+
+# Upload Limits
+MAX_UPLOAD_SIZE_MB=10
+MAX_UPLOAD_FILES=10
+
+# Server
+PORT=3000
+NODE_ENV=development
+```
+
+## Validation
+
+The application validates critical environment variables on startup:
+
+<CodeGroup>
+```bash Development
+🔧 Configuration:
+   NODE_ENV: development
+   DATABASE_URL: ✅ Set
+   BETTER_AUTH_SECRET: ✅ Set
+   FRONTEND_URL: http://localhost:5173
+
+🔐 Better Auth Configuration:
+  - BETTER_AUTH_URL: http://localhost:10000
+  - FRONTEND_URL: http://localhost:5173
+  - BETTER_AUTH_SECRET: Set
+```
+
+```bash Missing Variables
+❌ CRITICAL: BETTER_AUTH_SECRET is missing!
+❌ CRITICAL: BETTER_AUTH_URL is missing!
+⚠️  WARNING: FRONTEND_URL is missing - CORS may not work properly
+```
+</CodeGroup>
+
+## Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Protect Secrets">
+    - Never commit `.env` files to version control
+    - Add `.env` to `.gitignore`
+    - Use different secrets for development and production
+    - Rotate secrets periodically
+  </Accordion>
+  
+  <Accordion title="Use Strong Secrets">
+    - Generate `BETTER_AUTH_SECRET` with: `openssl rand -base64 32`
+    - Use unique, random values
+    - Minimum 32 characters recommended
+  </Accordion>
+  
+  <Accordion title="Production Deployment">
+    - Set environment variables directly in your hosting platform
+    - Don't rely on `.env` files in production
+    - Use secret management services (AWS Secrets Manager, etc.)
+    - Enable SSL/TLS for all connections
+  </Accordion>
+  
+  <Accordion title="Database Security">
+    - Use strong database passwords
+    - Enable SSL connections (`?sslmode=require`)
+    - Restrict database access by IP when possible
+    - Use connection pooling with appropriate limits
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Database Connection Failed">
+    **Symptoms:** Application crashes on startup with database connection error
+    
+    **Solutions:**
+    - Verify `DATABASE_URL` format is correct
+    - Check database server is running and accessible
+    - Verify credentials and database name
+    - For SSL connections, add `?sslmode=require`
+    - Check firewall rules and network connectivity
+  </Accordion>
+  
+  <Accordion title="Email Sending Fails">
+    **Symptoms:** Email verification or password reset emails not delivered
+    
+    **Solutions:**
+    - Verify `RESEND_API_KEY` is valid
+    - Ensure `EMAIL_FROM` uses a verified domain in Resend
+    - Check Resend dashboard for error logs
+    - Verify `BUSINESS_EMAIL` is set for contact forms
+  </Accordion>
+  
+  <Accordion title="CORS Errors">
+    **Symptoms:** Frontend cannot connect to API, browser shows CORS errors
+    
+    **Solutions:**
+    - Set `FRONTEND_URL` to match your frontend domain exactly
+    - Include protocol (`http://` or `https://`)
+    - No trailing slash in URL
+    - Check browser console for specific CORS error details
+  </Accordion>
+  
+  <Accordion title="File Upload Errors">
+    **Symptoms:** Images fail to upload
+    
+    **Solutions:**
+    - For `local`: Ensure `UPLOAD_DIR` has write permissions
+    - For `s3`: Verify all S3 credentials are correct
+    - Check IAM permissions for S3 bucket
+    - Verify `PUBLIC_UPLOAD_URL_BASE` is accessible
+    - Review upload size limits
+  </Accordion>
+</AccordionGroup>
+
+## See Also
+
+- [Database Configuration](/configuration/database) - PostgreSQL and Drizzle ORM setup
+- [Storage Configuration](/configuration/storage) - File storage options and setup
+- [API Reference](/api/overview) - API endpoint documentation

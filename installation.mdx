@@ -1,0 +1,578 @@
+---
+title: Installation
+description: Set up the Inmobiliaria API development environment locally
+---
+
+## Overview
+
+This guide will walk you through setting up the Inmobiliaria API on your local development machine. You'll install dependencies, configure the database, set up environment variables, and run the server.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+<CardGroup cols={2}>
+  <Card title="Node.js" icon="node-js">
+    Version 24.13.1 or higher (LTS recommended)
+  </Card>
+  <Card title="PostgreSQL" icon="database">
+    Version 14 or higher
+  </Card>
+  <Card title="Git" icon="git">
+    For cloning the repository
+  </Card>
+  <Card title="npm or yarn" icon="box">
+    Package manager (included with Node.js)
+  </Card>
+</CardGroup>
+
+<Note>
+The project requires **Node.js v24.13.1**. You can use [nvm](https://github.com/nvm-sh/nvm) to manage Node.js versions easily.
+</Note>
+
+## Installation steps
+
+<Steps>
+  <Step title="Clone the repository">
+    First, clone the repository and navigate to the project directory:
+
+    ```bash
+    git clone <repository-url> inmobiliaria-api
+    cd inmobiliaria-api
+    ```
+
+    If using nvm, install the required Node.js version:
+
+    ```bash
+    # Install the correct Node.js version
+    nvm install 24.13.1
+    nvm use 24.13.1
+
+    # Verify installation
+    node --version  # Should output v24.13.1
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Install all required npm packages:
+
+    ```bash
+    npm install
+    ```
+
+    This will install:
+    - **Express.js** v4.21.2 - Web framework
+    - **Drizzle ORM** v0.36.4 - Database ORM
+    - **Better Auth** v1.3.4 - Authentication
+    - **Sharp** v0.33.4 - Image processing
+    - **Zod** v3.25.1 - Schema validation
+    - **PostgreSQL client** - Database driver
+    - And other dependencies listed in `package.json`
+
+    <Tip>
+    The installation may take a few minutes, especially for native modules like Sharp.
+    </Tip>
+  </Step>
+
+  <Step title="Set up PostgreSQL database">
+    Create a new PostgreSQL database for the application:
+
+    <CodeGroup>
+    ```bash Using psql
+    # Connect to PostgreSQL
+    psql -U postgres
+
+    # Create database
+    CREATE DATABASE inmobiliaria;
+
+    # Create user (optional)
+    CREATE USER inmobiliaria_user WITH PASSWORD 'your_password';
+
+    # Grant privileges
+    GRANT ALL PRIVILEGES ON DATABASE inmobiliaria TO inmobiliaria_user;
+
+    # Exit psql
+    \q
+    ```
+
+    ```bash Using Docker
+    # Run PostgreSQL in Docker
+    docker run -d \
+      --name inmobiliaria-db \
+      -e POSTGRES_DB=inmobiliaria \
+      -e POSTGRES_USER=inmobiliaria_user \
+      -e POSTGRES_PASSWORD=your_password \
+      -p 5432:5432 \
+      postgres:16-alpine
+
+    # Verify container is running
+    docker ps
+    ```
+    </CodeGroup>
+
+    <Check>
+    Your PostgreSQL database is ready when you can connect to it successfully.
+    </Check>
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env` file in the project root with the following variables:
+
+    ```bash .env
+    # Node Environment
+    NODE_ENV=development
+
+    # Server Configuration
+    PORT=3000
+
+    # Database Connection
+    DATABASE_URL=postgresql://inmobiliaria_user:your_password@localhost:5432/inmobiliaria
+
+    # Better Auth Configuration
+    BETTER_AUTH_SECRET=your-secret-key-min-32-chars-long
+    BETTER_AUTH_URL=http://localhost:3000
+    FRONTEND_URL=http://localhost:5173
+
+    # Email Configuration (Resend)
+    RESEND_API_KEY=re_your_resend_api_key
+    EMAIL_FROM=noreply@yourdomain.com
+    BUSINESS_EMAIL=contact@yourdomain.com
+
+    # Google OAuth (Optional)
+    GOOGLE_CLIENT_ID=your-google-client-id
+    GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+    # File Storage Configuration
+    STORAGE_DRIVER=local  # or 's3' for cloud storage
+    UPLOAD_DIR=uploads
+    PUBLIC_UPLOAD_URL_BASE=/uploads
+    MAX_UPLOAD_SIZE_MB=10
+    MAX_UPLOAD_FILES=10
+
+    # S3 Storage (if using STORAGE_DRIVER=s3)
+    # AWS_ACCESS_KEY_ID=your-access-key
+    # AWS_SECRET_ACCESS_KEY=your-secret-key
+    # AWS_REGION=us-east-1
+    # S3_BUCKET=your-bucket-name
+    # S3_ENDPOINT=  # Optional, for R2/B2 compatibility
+    # PUBLIC_UPLOAD_URL_BASE=https://your-cdn.com
+    ```
+
+    <Warning>
+    **Security Best Practices:**
+    - Never commit `.env` files to version control
+    - Use strong, randomly generated secrets for `BETTER_AUTH_SECRET`
+    - In production, use proper secret management (AWS Secrets Manager, etc.)
+    </Warning>
+
+    ### Required environment variables
+
+    | Variable | Description | Example |
+    |----------|-------------|----------|
+    | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/db` |
+    | `BETTER_AUTH_SECRET` | Secret key for auth (min 32 chars) | `your-secret-key-min-32-chars-long` |
+    | `BETTER_AUTH_URL` | Backend URL for Better Auth | `http://localhost:3000` |
+    | `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:5173` |
+
+    ### Optional environment variables
+
+    | Variable | Description | Default |
+    |----------|-------------|----------|
+    | `PORT` | Server port | `3000` |
+    | `NODE_ENV` | Environment mode | `development` |
+    | `STORAGE_DRIVER` | Storage backend (local/s3) | `local` |
+    | `UPLOAD_DIR` | Local upload directory | `uploads` |
+    | `MAX_UPLOAD_SIZE_MB` | Max file size in MB | `10` |
+
+    <Tip>
+    Generate a secure secret with: `openssl rand -base64 32`
+    </Tip>
+  </Step>
+
+  <Step title="Run database migrations">
+    Set up the database schema using Drizzle Kit:
+
+    ```bash
+    # Generate migration files (if needed)
+    npm run db:generate
+
+    # Push schema to database
+    npm run db:push
+
+    # Or run migrations manually
+    npm run db:migrate:run
+    ```
+
+    This creates all necessary tables:
+    - `users`, `accounts`, `sessions` - Authentication
+    - `properties` - Property listings
+    - `property_types`, `property_subtypes` - Property metadata
+    - `operation_types` - Sale/Rent types
+    - `property_locations` - Address data
+    - `property_images` - Image metadata
+    - `property_characteristics` - Features and attributes
+    - `currencies`, `property_conditions`, `property_statuses` - Reference data
+
+    <Info>
+    All migration files are stored in `src/db/migrations/` for version control.
+    </Info>
+  </Step>
+
+  <Step title="Seed the database (optional)">
+    Populate the database with sample data for development:
+
+    ```bash
+    npm run db:seed
+    ```
+
+    This will create:
+    - Property types (departamento, casa, terreno, etc.)
+    - Operation types (venta, alquiler, alquiler-temporal)
+    - Currencies (USD, ARS, EUR)
+    - Property conditions and statuses
+    - Sample admin user (check console output for credentials)
+    - Sample properties with images
+
+    <Check>
+    After seeding, you'll see a confirmation message with the number of records created.
+    </Check>
+  </Step>
+
+  <Step title="Start the development server">
+    Run the server in development mode with hot reload:
+
+    ```bash
+    npm run dev
+    ```
+
+    You should see output similar to:
+
+    ```
+    🚀 Server is running on port 3000
+    📊 Health check: http://localhost:3000/health
+    🔐 Better Auth endpoints:
+    🏠 Properties API: http://localhost:3000/api/properties
+    👥 Users API: http://localhost:3000/api/users/profile
+    ⚙️  Admin API: http://localhost:3000/api/admin/stats
+    📋 Metadata API: http://localhost:3000/api/metadata/all
+    🖼  Uploads served at: /uploads
+       Max upload size (bytes): 10485760
+
+    🔧 Configuration:
+       NODE_ENV: development
+       DATABASE_URL: ✅ Set
+       BETTER_AUTH_SECRET: ✅ Set
+       FRONTEND_URL: http://localhost:5173
+    ```
+
+    <Success>
+    Your API server is now running! The server will automatically reload when you make code changes.
+    </Success>
+  </Step>
+
+  <Step title="Verify the installation">
+    Test that everything is working correctly:
+
+    ```bash
+    # Check health endpoint
+    curl http://localhost:3000/health
+    ```
+
+    **Expected response:**
+    ```json
+    {
+      "status": "ok",
+      "database": {
+        "status": "healthy",
+        "latency": "2ms"
+      },
+      "timestamp": "2026-03-03T10:30:00.000Z"
+    }
+    ```
+
+    **Test the properties endpoint:**
+    ```bash
+    curl http://localhost:3000/api/properties
+    ```
+
+    **Test metadata endpoint:**
+    ```bash
+    curl http://localhost:3000/api/metadata/all
+    ```
+
+    <Check>
+    If all endpoints return valid JSON responses, your installation is successful!
+    </Check>
+  </Step>
+</Steps>
+
+## Development tools
+
+### Available npm scripts
+
+The project includes several useful scripts:
+
+```json package.json scripts
+{
+  "dev": "nodemon src/index.ts",           // Start dev server with hot reload
+  "build": "npm install && tsc",           // Build for production
+  "start": "node dist/index.js",           // Run production build
+  "db:generate": "drizzle-kit generate",   // Generate migration files
+  "db:migrate": "drizzle-kit migrate",     // Run pending migrations
+  "db:push": "drizzle-kit push",           // Push schema to database
+  "db:studio": "drizzle-kit studio",       // Open Drizzle Studio GUI
+  "db:seed": "tsx src/db/seed.ts",         // Seed database with sample data
+  "db:migrate:run": "tsx src/db/migrate.ts" // Run migrations programmatically
+}
+```
+
+### Drizzle Studio
+
+Open a web-based database GUI:
+
+```bash
+npm run db:studio
+```
+
+This launches Drizzle Studio at `https://local.drizzle.studio` where you can:
+- Browse all database tables
+- View and edit records
+- Run queries
+- Inspect relationships
+
+## Storage configuration
+
+### Local storage (default)
+
+For development, local file storage is enabled by default:
+
+```bash .env
+STORAGE_DRIVER=local
+UPLOAD_DIR=uploads
+PUBLIC_UPLOAD_URL_BASE=/uploads
+```
+
+Uploaded files are stored in the `uploads/` directory and served at `http://localhost:3000/uploads/`.
+
+### S3-compatible storage
+
+For production or if you prefer cloud storage, configure S3:
+
+```bash .env
+STORAGE_DRIVER=s3
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-east-1
+S3_BUCKET=your-bucket-name
+PUBLIC_UPLOAD_URL_BASE=https://your-cdn.com
+
+# For Cloudflare R2 or Backblaze B2:
+S3_ENDPOINT=https://your-account.r2.cloudflarestorage.com
+```
+
+The API supports:
+- **AWS S3** - Standard S3 storage
+- **Cloudflare R2** - S3-compatible, zero egress fees
+- **Backblaze B2** - S3-compatible, affordable storage
+
+<Info>
+Images are automatically optimized and converted to WebP format with two variants: thumbnail (400px) and large (1200px).
+</Info>
+
+## Email configuration
+
+The API uses [Resend](https://resend.com) for transactional emails:
+
+```bash .env
+RESEND_API_KEY=re_your_api_key
+EMAIL_FROM=noreply@yourdomain.com
+BUSINESS_EMAIL=contact@yourdomain.com
+```
+
+Emails are sent for:
+- Email verification during signup
+- Password reset requests
+- Contact form submissions
+
+<Tip>
+Resend offers a generous free tier. Sign up at [resend.com](https://resend.com) to get your API key.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Database connection errors">
+    **Error:** `Failed to connect to database`
+
+    **Solutions:**
+    1. Verify PostgreSQL is running: `pg_isready`
+    2. Check DATABASE_URL format: `postgresql://user:password@host:port/database`
+    3. Ensure database exists: `psql -l`
+    4. Check firewall/network settings
+    5. Verify credentials are correct
+
+    **Test connection:**
+    ```bash
+    psql "postgresql://user:password@localhost:5432/inmobiliaria"
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    **Error:** `EADDRINUSE: address already in use :::3000`
+
+    **Solutions:**
+    1. Change the PORT in `.env`: `PORT=3001`
+    2. Kill the process using port 3000:
+       ```bash
+       # Find process
+       lsof -i :3000
+       # Kill it
+       kill -9 <PID>
+       ```
+    3. Use a different port temporarily:
+       ```bash
+       PORT=3001 npm run dev
+       ```
+  </Accordion>
+
+  <Accordion title="Sharp installation issues">
+    **Error:** Sharp native module compilation errors
+
+    **Solutions:**
+    1. Install build tools:
+       ```bash
+       # macOS
+       xcode-select --install
+
+       # Ubuntu/Debian
+       sudo apt-get install build-essential
+
+       # Windows
+       npm install --global windows-build-tools
+       ```
+    2. Clear npm cache and reinstall:
+       ```bash
+       npm cache clean --force
+       rm -rf node_modules package-lock.json
+       npm install
+       ```
+  </Accordion>
+
+  <Accordion title="Better Auth errors">
+    **Error:** `BETTER_AUTH_SECRET is missing!`
+
+    **Solution:**
+    Ensure `.env` contains a secure secret (minimum 32 characters):
+    ```bash
+    # Generate a secure secret
+    openssl rand -base64 32
+
+    # Add to .env
+    BETTER_AUTH_SECRET=<generated-secret>
+    ```
+
+    **Error:** Session/cookie issues
+
+    **Solution:**
+    1. Check FRONTEND_URL matches your frontend's origin
+    2. Ensure cookies are enabled in your client
+    3. In development, use `sameSite: 'lax'` (automatic)
+  </Accordion>
+
+  <Accordion title="Migration errors">
+    **Error:** Migration fails or schema conflicts
+
+    **Solutions:**
+    1. Drop and recreate database (development only):
+       ```bash
+       dropdb inmobiliaria
+       createdb inmobiliaria
+       npm run db:push
+       ```
+    2. Check migration files in `src/db/migrations/`
+    3. Manually apply migrations:
+       ```bash
+       npm run db:migrate:run
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Production build
+
+To build and run the production version:
+
+<Steps>
+  <Step title="Build the application">
+    ```bash
+    npm run build
+    ```
+
+    This compiles TypeScript to JavaScript in the `dist/` directory.
+  </Step>
+
+  <Step title="Set production environment">
+    ```bash .env.production
+    NODE_ENV=production
+    PORT=3000
+    DATABASE_URL=postgresql://user:password@your-db-host:5432/inmobiliaria
+    BETTER_AUTH_SECRET=your-production-secret
+    BETTER_AUTH_URL=https://api.yourdomain.com
+    FRONTEND_URL=https://yourdomain.com
+    # ... other production variables
+    ```
+  </Step>
+
+  <Step title="Run the production server">
+    ```bash
+    NODE_ENV=production npm start
+    ```
+
+    Or use a process manager like PM2:
+    ```bash
+    pm2 start dist/index.js --name inmobiliaria-api
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+In production:
+- Use secure HTTPS connections
+- Enable cookie security (`secure: true`, `sameSite: 'none'`)
+- Use proper secret management
+- Set up database backups
+- Configure rate limiting
+- Use a reverse proxy (nginx, Caddy)
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart guide"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Make your first API call
+  </Card>
+  <Card
+    title="Authentication"
+    icon="lock"
+    href="/auth/overview"
+  >
+    Learn about authentication flows
+  </Card>
+  <Card
+    title="API reference"
+    icon="book"
+    href="/api/overview"
+  >
+    Explore all available endpoints
+  </Card>
+  <Card
+    title="Deployment guide"
+    icon="cloud"
+    href="/deployment"
+  >
+    Deploy to production
+  </Card>
+</CardGroup>

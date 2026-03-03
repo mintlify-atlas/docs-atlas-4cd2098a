@@ -1,0 +1,281 @@
+---
+title: 'Authentication Overview'
+description: 'Learn about the Inmobiliaria API authentication system powered by Better Auth'
+icon: 'shield-halved'
+---
+
+## Introduction
+
+The Inmobiliaria API uses [Better Auth](https://better-auth.com) as its authentication framework, providing a secure, flexible, and developer-friendly authentication system. Better Auth handles session management, OAuth providers, email verification, and password reset flows.
+
+<CardGroup cols={2}>
+  <Card title="Email & Password" icon="envelope" href="/auth/email-password">
+    Traditional authentication with email verification
+  </Card>
+  <Card title="OAuth (Google)" icon="google" href="/auth/oauth">
+    Sign in with Google OAuth 2.0
+  </Card>
+  <Card title="Session Management" icon="clock" href="/auth/sessions">
+    Understanding sessions and authentication state
+  </Card>
+  <Card title="API Authentication" icon="shield-check" href="/api/authentication">
+    Protecting routes with authentication middleware
+  </Card>
+</CardGroup>
+
+## Authentication Methods
+
+The API supports two primary authentication methods:
+
+### 1. Email and Password
+
+Traditional authentication where users register with an email address and password. This method includes:
+- Email verification (required before full access)
+- Password reset via email
+- Secure password hashing
+
+### 2. OAuth (Google)
+
+Social authentication using Google OAuth 2.0. Users can sign in with their Google account without creating a separate password.
+
+## Better Auth Configuration
+
+The authentication system is configured in `src/auth/index.ts`:
+
+```typescript
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: {
+      user: schema.users,
+      account: schema.accounts,
+      session: schema.sessions,
+      verification: schema.verificationTokens,
+    },
+  }),
+  emailVerification: {
+    expiresIn: 3600, // 1 hour
+    sendOnSignUp: true,
+  },
+  emailAndPassword: {
+    enabled: true,
+    resetPasswordTokenExpiresIn: 3600, // 1 hour
+  },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    },
+  },
+  session: {
+    expiresIn: 60 * 60 * 24 * 30, // 30 days
+    updateAge: 60 * 60 * 24 * 7,  // 7 days
+  },
+  plugins: [admin()],
+});
+```
+
+<Tip>
+The `admin()` plugin from Better Auth provides enhanced admin-specific functionality.
+</Tip>
+
+## Database Schema
+
+Better Auth uses four main tables to manage authentication:
+
+### Users Table
+
+```typescript
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  image: text("image"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  role: userRoleEnum("role").default("user"), // Custom field
+});
+```
+
+### Sessions Table
+
+Stores active user sessions:
+
+```typescript
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expires_at").notNull(),
+  token: text("token").notNull().unique(),
+  userId: text("user_id").references(() => users.id),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+```
+
+### Accounts Table
+
+Stores OAuth provider accounts and password hashes:
+
+```typescript
+export const accounts = pgTable("accounts", {
+  id: text("id").primaryKey(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id").references(() => users.id),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  password: text("password"), // For email/password auth
+  // ... additional OAuth fields
+});
+```
+
+### Verification Tokens Table
+
+Stores email verification and password reset tokens:
+
+```typescript
+export const verificationTokens = pgTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+```
+
+## Security Features
+
+The authentication system includes several security features:
+
+### 1. HTTP-Only Cookies
+
+Sessions are stored in HTTP-only cookies to prevent XSS attacks:
+
+```typescript
+advanced: {
+  cookiePrefix: "inmobiliaria",
+  useSecureCookies: process.env.NODE_ENV === "production",
+  defaultCookieAttributes: {
+    sameSite: "none",  // Required for cross-origin requests
+    secure: true,       // HTTPS only in production
+    httpOnly: true,     // Prevents JavaScript access
+  },
+}
+```
+
+### 2. CORS Configuration
+
+Cross-Origin Resource Sharing is configured to allow requests from the frontend:
+
+```typescript
+app.use(cors({
+  origin: [process.env.FRONTEND_URL],
+  credentials: true, // Important for cookies
+}));
+```
+
+### 3. Trusted Origins
+
+Only specified origins can make authenticated requests:
+
+```typescript
+trustedOrigins: [
+  process.env.FRONTEND_URL,
+  process.env.BETTER_AUTH_URL,
+]
+```
+
+### 4. Password Hashing
+
+Passwords are automatically hashed using bcrypt before storage. Better Auth handles this internally.
+
+### 5. Email Verification
+
+Users must verify their email address before gaining full access to the system. Verification tokens expire after 1 hour.
+
+## User Roles
+
+The system supports two user roles:
+
+<AccordionGroup>
+  <Accordion title="User" icon="user">
+    Standard user role with access to:
+    - View properties
+    - Submit contact inquiries
+    - Manage their own profile
+  </Accordion>
+  
+  <Accordion title="Admin" icon="user-shield">
+    Administrative role with full access to:
+    - All user capabilities
+    - Create, update, and delete properties
+    - Manage users
+    - View analytics and statistics
+    - Access admin-only endpoints
+  </Accordion>
+</AccordionGroup>
+
+## Environment Variables
+
+Required environment variables for authentication:
+
+```bash
+# Better Auth
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=your-secret-key-min-32-chars
+FRONTEND_URL=http://localhost:5173
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Email (Resend)
+RESEND_API_KEY=your-resend-api-key
+EMAIL_FROM=noreply@yourdomain.com
+```
+
+<Warning>
+The `BETTER_AUTH_SECRET` must be at least 32 characters long. Generate a secure random string for production.
+</Warning>
+
+## API Endpoints
+
+All Better Auth endpoints are available under `/api/auth/*`:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/sign-up/email` | POST | Register with email and password |
+| `/api/auth/sign-in/email` | POST | Sign in with email and password |
+| `/api/auth/sign-in/google` | GET | Initiate Google OAuth flow |
+| `/api/auth/sign-out` | POST | Sign out and invalidate session |
+| `/api/auth/verify-email` | GET | Verify email address |
+| `/api/auth/forget-password` | POST | Request password reset |
+| `/api/auth/reset-password` | POST | Reset password with token |
+| `/api/session` | GET | Get current session information |
+
+<Info>
+All Better Auth endpoints are automatically handled by the framework. See individual guides for detailed request/response formats.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Email/Password Auth" icon="key" href="/auth/email-password">
+    Implement email and password authentication
+  </Card>
+  <Card title="OAuth Integration" icon="google" href="/auth/oauth">
+    Set up Google OAuth authentication
+  </Card>
+  <Card title="Session Management" icon="clock-rotate-left" href="/auth/sessions">
+    Learn about session handling
+  </Card>
+  <Card title="Protect Routes" icon="lock" href="/api/authentication">
+    Use authentication middleware
+  </Card>
+</CardGroup>

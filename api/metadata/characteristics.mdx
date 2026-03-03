@@ -1,0 +1,390 @@
+---
+title: "Characteristics & Features"
+description: "Get property characteristics, features, tags, conditions, and currencies"
+---
+
+## Get All Characteristics
+
+<RequestExample>
+```http GET /api/metadata/characteristics
+GET /api/metadata/characteristics
+```
+</RequestExample>
+
+Retrieves all distinct characteristic labels currently used across properties. Returns a simple array of strings representing available characteristics.
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of characteristic label strings (deduplicated and sorted)
+</ResponseField>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": [
+    "Aire acondicionado",
+    "Ascensor",
+    "Balcón",
+    "Cochera",
+    "Electricidad",
+    "Gimnasio",
+    "Internet",
+    "Jardín",
+    "Lavadero",
+    "Parrilla",
+    "Pileta",
+    "Seguridad 24hs",
+    "SUM",
+    "Terraza"
+  ]
+}
+```
+</ResponseExample>
+
+<Note>
+  This endpoint returns dynamically generated labels based on characteristics currently in use across properties. The list grows as new characteristics are added to properties.
+</Note>
+
+## Get Property Conditions
+
+<RequestExample>
+```http GET /api/metadata/conditions
+GET /api/metadata/conditions
+```
+</RequestExample>
+
+Retrieves all available property condition types.
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of property condition objects
+  
+  <Expandable title="Condition Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the condition
+    </ResponseField>
+    
+    <ResponseField name="name" type="string" required>
+      Display name of the condition
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "A estrenar"
+    },
+    {
+      "id": 2,
+      "name": "Bueno"
+    },
+    {
+      "id": 3,
+      "name": "Muy bueno"
+    },
+    {
+      "id": 4,
+      "name": "Excelente"
+    },
+    {
+      "id": 5,
+      "name": "Reciclado"
+    },
+    {
+      "id": 6,
+      "name": "Para refaccionar"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Get Currencies
+
+<RequestExample>
+```http GET /api/metadata/currencies
+GET /api/metadata/currencies
+```
+</RequestExample>
+
+Retrieves all available currencies for property pricing.
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of currency objects
+  
+  <Expandable title="Currency Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the currency
+    </ResponseField>
+    
+    <ResponseField name="code" type="string" required>
+      Three-letter ISO currency code
+    </ResponseField>
+    
+    <ResponseField name="symbol" type="string" required>
+      Currency symbol for display
+    </ResponseField>
+    
+    <ResponseField name="name" type="string" required>
+      Full name of the currency
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "code": "ARS",
+      "symbol": "$",
+      "name": "Peso Argentino"
+    },
+    {
+      "id": 2,
+      "code": "USD",
+      "symbol": "US$",
+      "name": "Dólar Estadounidense"
+    },
+    {
+      "id": 3,
+      "code": "EUR",
+      "symbol": "€",
+      "name": "Euro"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Get Property Statuses
+
+<RequestExample>
+```http GET /api/metadata/property-statuses
+GET /api/metadata/property-statuses
+```
+</RequestExample>
+
+Retrieves all available property status types.
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of property status objects
+  
+  <Expandable title="Status Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the status
+    </ResponseField>
+    
+    <ResponseField name="name" type="string" required>
+      Display name of the status
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string" required>
+      URL-friendly identifier
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Activo",
+      "slug": "activo"
+    },
+    {
+      "id": 2,
+      "name": "Pendiente",
+      "slug": "pendiente"
+    },
+    {
+      "id": 3,
+      "name": "Vendido",
+      "slug": "vendido"
+    },
+    {
+      "id": 4,
+      "name": "Alquilado",
+      "slug": "alquilado"
+    },
+    {
+      "id": 5,
+      "name": "Pausado",
+      "slug": "pausado"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Get All Metadata
+
+<RequestExample>
+```http GET /api/metadata/all
+GET /api/metadata/all
+```
+</RequestExample>
+
+Retrieves all metadata in a single request for efficient initialization. This endpoint combines all metadata types into one response.
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  Object containing all metadata categories
+  
+  <Expandable title="Metadata Object">
+    <ResponseField name="propertyTypes" type="array" required>
+      Array of property types with nested subtypes
+    </ResponseField>
+    
+    <ResponseField name="operationTypes" type="array" required>
+      Array of operation types
+    </ResponseField>
+    
+    <ResponseField name="propertyStatuses" type="array" required>
+      Array of property statuses
+    </ResponseField>
+    
+    <ResponseField name="currencies" type="array" required>
+      Array of currencies
+    </ResponseField>
+    
+    <ResponseField name="characteristics" type="array" required>
+      Array of characteristic objects with label field
+    </ResponseField>
+    
+    <ResponseField name="conditions" type="array" required>
+      Array of property conditions
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": {
+    "propertyTypes": [
+      {
+        "id": 1,
+        "name": "Casa",
+        "slug": "casa",
+        "subtypes": [
+          {
+            "id": 1,
+            "name": "Casa en barrio cerrado",
+            "slug": "casa-barrio-cerrado",
+            "type_id": 1
+          }
+        ]
+      }
+    ],
+    "operationTypes": [
+      {
+        "id": 1,
+        "name": "Venta",
+        "slug": "venta"
+      }
+    ],
+    "propertyStatuses": [
+      {
+        "id": 1,
+        "name": "Activo",
+        "slug": "activo"
+      }
+    ],
+    "currencies": [
+      {
+        "id": 1,
+        "code": "ARS",
+        "symbol": "$",
+        "name": "Peso Argentino"
+      }
+    ],
+    "characteristics": [
+      {
+        "label": "Aire acondicionado"
+      },
+      {
+        "label": "Pileta"
+      }
+    ],
+    "conditions": [
+      {
+        "id": 1,
+        "name": "A estrenar"
+      }
+    ]
+  }
+}
+```
+</ResponseExample>
+
+<Tip>
+  Use the `/api/metadata/all` endpoint when initializing your application to reduce the number of API calls and improve performance.
+</Tip>
+
+## Common Characteristics
+
+Based on the schema, common property characteristics include:
+
+### Amenities
+- Parrilla (Grill)
+- Pileta (Pool)
+- SUM (Multi-purpose room)
+- Gimnasio (Gym)
+- Seguridad 24hs (24/7 Security)
+
+### Features
+- Aire acondicionado (Air conditioning)
+- Ascensor (Elevator)
+- Balcón (Balcony)
+- Terraza (Terrace)
+- Jardín (Garden)
+- Cochera (Garage)
+- Lavadero (Laundry room)
+
+### Utilities
+- Internet
+- Electricidad (Electricity)
+
+<Note>
+  The characteristics endpoint returns only labels that are currently in use across properties. New characteristics can be added dynamically when creating or updating properties.
+</Note>

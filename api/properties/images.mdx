@@ -1,0 +1,261 @@
+---
+title: "Manage Property Images"
+api: "PUT /api/properties/:id"
+description: "Upload, delete, rotate, and reorder property images"
+---
+
+## Overview
+
+Property images are managed through the main update endpoint (`PUT /api/properties/:id`). There is no separate `/images` endpoint. 
+
+This page focuses specifically on image management operations.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. **Admin role required.**
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The property ID.
+</ParamField>
+
+## Image Operations
+
+### Upload New Images
+
+Upload new images using multipart/form-data:
+
+```bash
+curl -X PUT "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F "images=@photo1.jpg" \
+  -F "images=@photo2.jpg" \
+  -F "images=@photo3.jpg"
+```
+
+<ParamField body="images" type="File[]">
+  Array of image files. Maximum 20 files total. Images are automatically converted to WebP format with large and thumbnail variants.
+</ParamField>
+
+### Set Main Image for New Uploads
+
+Specify which uploaded image should be the main image:
+
+```bash
+curl -X PUT "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F "images=@photo1.jpg" \
+  -F "images=@photo2.jpg" \
+  -F "mainNewImageIndex=1"  # Second image is main
+```
+
+<ParamField body="mainNewImageIndex" type="number">
+  Zero-based index of the main image among newly uploaded files. If not specified and no existing images, first uploaded image becomes main.
+</ParamField>
+
+### Rotate Images on Upload
+
+Rotate images during upload:
+
+```bash
+curl -X PUT "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F "images=@photo1.jpg" \
+  -F "images=@photo2.jpg" \
+  -F 'newImageRotations=[0,1]'  # Don't rotate first, rotate second 90°
+```
+
+<ParamField body="newImageRotations" type="number[]">
+  Array of rotation steps for each uploaded image. JSON array as string.
+  
+  Rotation steps:
+  - `0` = No rotation (0°)
+  - `1` = 90° clockwise
+  - `2` = 180°
+  - `3` = 270° clockwise (90° counter-clockwise)
+</ParamField>
+
+### Delete Existing Images
+
+Delete images by their IDs:
+
+```bash
+curl -X PUT "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F 'imagesToDelete=[456,457,458]'  # Delete images with IDs 456, 457, 458
+```
+
+<ParamField body="imagesToDelete" type="number[]">
+  Array of image IDs to delete. JSON array as string. Both database records and storage files (large + thumbnail variants) are removed.
+</ParamField>
+
+### Rotate Existing Images
+
+Rotate already uploaded images:
+
+```bash
+curl -X PUT "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F 'existingImageRotations={"456":1,"457":2}'  # Rotate image 456 by 90°, image 457 by 180°
+```
+
+<ParamField body="existingImageRotations" type="object">
+  Object mapping image ID (as string key) to rotation step (0-3). JSON object as string.
+  
+  The rotation is applied **physically** to the stored images - the files are modified and re-uploaded with the rotation applied. The rotation value in the database is reset to 0.
+</ParamField>
+
+### Reorder Images and Set Main
+
+Update image order and main image flag:
+
+```bash
+curl -X PUT "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F 'imagesMeta=[{"id":456,"url":"https://...","orderIndex":0,"isMain":true},{"id":457,"url":"https://...","orderIndex":1,"isMain":false}]'
+```
+
+<ParamField body="imagesMeta" type="array">
+  Array of image metadata objects. JSON array as string.
+  
+  Each object must include:
+  - `id` (number): Image ID
+  - `url` (string): Image URL (must match existing)
+  - `orderIndex` (number): Display order (0-based)
+  - `isMain` (boolean): Whether this is the main image
+  
+  **Note**: When provided, all images for the property are first set to `isMain: false`, then updated based on this array.
+</ParamField>
+
+## Combined Operations
+
+You can combine multiple operations in a single request:
+
+```bash
+curl -X PUT "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F 'imagesToDelete=[456]' \
+  -F "images=@new-photo1.jpg" \
+  -F "images=@new-photo2.jpg" \
+  -F 'newImageRotations=[0,1]' \
+  -F 'existingImageRotations={"457":1}' \
+  -F 'imagesMeta=[{"id":457,"url":"https://...","orderIndex":0,"isMain":true},{"id":458,"url":"https://...","orderIndex":1,"isMain":false}]'
+```
+
+This request:
+1. Deletes image 456
+2. Uploads 2 new photos (second one rotated 90°)
+3. Rotates existing image 457 by 90°
+4. Reorders images and sets image 457 as main
+
+## Image Processing
+
+### Automatic WebP Conversion
+
+All uploaded images are automatically:
+- Converted to WebP format
+- Resized to create two variants:
+  - **Large variant**: Optimized for display
+  - **Thumbnail variant**: Smaller size for listings
+
+### Storage Structure
+
+Images are stored with the following path structure:
+```
+properties/{propertyId}/{uuid}-lg.webp      # Large variant
+properties/{propertyId}/{uuid}-thumb.webp   # Thumbnail variant
+```
+
+### Rotation Behavior
+
+- **New images** (`newImageRotations`): Rotation applied during upload processing
+- **Existing images** (`existingImageRotations`): Files are downloaded, rotated, and re-uploaded (both variants)
+- Rotation is physical - the actual image data is transformed
+- After rotation, the `rotationDegrees` field in the database is set to 0
+
+## Response
+
+The response includes the full updated property object with the new image configuration:
+
+```json
+{
+  "success": true,
+  "message": "Property updated successfully",
+  "data": {
+    "id": "123",
+    "images": [
+      "https://storage.example.com/properties/123/abc-lg.webp",
+      "https://storage.example.com/properties/123/def-lg.webp"
+    ],
+    "imagesMeta": [
+      {
+        "id": 457,
+        "url": "https://storage.example.com/properties/123/abc-lg.webp",
+        "orderIndex": 0,
+        "isMain": true
+      },
+      {
+        "id": 459,
+        "url": "https://storage.example.com/properties/123/def-lg.webp",
+        "orderIndex": 1,
+        "isMain": false
+      }
+    ]
+    // ... other property fields
+  }
+}
+```
+
+## Error Responses
+
+### Upload Failed (500)
+
+If image upload fails, already-uploaded images are cleaned up and the transaction is rolled back:
+
+```json
+{
+  "success": false,
+  "message": "Failed to update property"
+}
+```
+
+### Invalid Image ID (500)
+
+When rotating or updating metadata for non-existent image:
+
+```json
+{
+  "success": false,
+  "message": "Failed to update property"
+}
+```
+
+## Best Practices
+
+1. **Order of Operations**: The system processes image operations in this order:
+   - Delete images (`imagesToDelete`)
+   - Rotate existing images (`existingImageRotations`)
+   - Upload new images (`images`)
+   - Update metadata (`imagesMeta`)
+
+2. **Main Image**: Always ensure at least one image is marked as main when using `imagesMeta`
+
+3. **Performance**: Upload images in batches rather than one at a time
+
+4. **File Formats**: Any common image format is accepted (JPEG, PNG, etc.) - all converted to WebP
+
+5. **Size Limits**: Check server configuration for maximum file size and total number of images
+
+6. **Transaction Safety**: All operations are wrapped in a database transaction - if any step fails, all changes are rolled back
+
+## Notes
+
+- Maximum 20 images per property (check `MAX_FILE_COUNT` constant)
+- Images are automatically optimized for web delivery
+- Both large and thumbnail variants are always created
+- Deleting images removes both variants from storage
+- Image order is preserved based on `orderIndex`
+- First image is used as main by default if none specified

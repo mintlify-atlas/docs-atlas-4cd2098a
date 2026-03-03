@@ -1,0 +1,315 @@
+---
+title: "Update Property"
+api: "PUT /api/properties/:id"
+description: "Update an existing property"
+---
+
+## Overview
+
+Update an existing property's details, images, and location. Supports partial updates - only provided fields will be modified.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. **Admin role required.**
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The property ID to update.
+</ParamField>
+
+## Request Body
+
+Accepts `multipart/form-data` for image uploads. All fields are optional - only provided fields will be updated.
+
+### Property Details
+
+<ParamField body="title" type="string">
+  Property title.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Property description.
+</ParamField>
+
+<ParamField body="propertyTypeId" type="number">
+  Property type ID.
+</ParamField>
+
+<ParamField body="propertySubtypeId" type="number">
+  Property subtype ID.
+</ParamField>
+
+<ParamField body="operationTypeId" type="number">
+  Operation type ID.
+</ParamField>
+
+<ParamField body="statusId" type="number">
+  Status ID.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Status slug or name (alternative to statusId).
+</ParamField>
+
+<ParamField body="currencyId" type="number">
+  Currency ID.
+</ParamField>
+
+<ParamField body="price" type="number">
+  Property price.
+</ParamField>
+
+<ParamField body="originalPrice" type="number">
+  Original price.
+</ParamField>
+
+<ParamField body="expenses" type="number">
+  Monthly expenses.
+</ParamField>
+
+<ParamField body="surfaceCoveredM2" type="number">
+  Covered surface in m².
+</ParamField>
+
+<ParamField body="surfaceUncoveredM2" type="number">
+  Uncovered surface in m².
+</ParamField>
+
+<ParamField body="lotSize" type="number">
+  Lot size in m².
+</ParamField>
+
+<ParamField body="rooms" type="number">
+  Number of rooms.
+</ParamField>
+
+<ParamField body="bedrooms" type="number">
+  Number of bedrooms.
+</ParamField>
+
+<ParamField body="bathrooms" type="number">
+  Number of bathrooms.
+</ParamField>
+
+<ParamField body="yearBuilt" type="number">
+  Year built.
+</ParamField>
+
+<ParamField body="conditionId" type="number">
+  Condition ID.
+</ParamField>
+
+<ParamField body="condition" type="string">
+  Condition name.
+</ParamField>
+
+<ParamField body="floor" type="number">
+  Floor number.
+</ParamField>
+
+### Features
+
+<ParamField body="hasBalcony" type="boolean | string">
+  Has balcony.
+</ParamField>
+
+<ParamField body="hasTerrace" type="boolean | string">
+  Has terrace.
+</ParamField>
+
+<ParamField body="hasLaundry" type="boolean | string">
+  Has laundry.
+</ParamField>
+
+<ParamField body="hasGarden" type="boolean | string">
+  Has garden.
+</ParamField>
+
+<ParamField body="petsAllowed" type="boolean | string">
+  Pets allowed.
+</ParamField>
+
+<ParamField body="garageSpaces" type="number">
+  Garage spaces.
+</ParamField>
+
+<ParamField body="youtubeVideoUrl" type="string">
+  YouTube URL.
+</ParamField>
+
+<ParamField body="oportunidad" type="boolean | string">
+  Opportunity listing.
+</ParamField>
+
+<ParamField body="creditoHipotecario" type="boolean | string">
+  Mortgage credit.
+</ParamField>
+
+<ParamField body="aptoProfesional" type="boolean | string">
+  Professional use.
+</ParamField>
+
+<ParamField body="aceptaPermuta" type="boolean | string">
+  Property exchange.
+</ParamField>
+
+<ParamField body="amoblado" type="boolean | string">
+  Furnished.
+</ParamField>
+
+<ParamField body="duenioDirecto" type="boolean | string">
+  Direct owner.
+</ParamField>
+
+<ParamField body="features" type="string[]">
+  Custom features (replaces all existing features).
+</ParamField>
+
+### Contact
+
+<ParamField body="contactPhone" type="string">
+  Contact phone.
+</ParamField>
+
+<ParamField body="contactEmail" type="string">
+  Contact email.
+</ParamField>
+
+### Location
+
+<ParamField body="location" type="object">
+  Location object (partial updates supported).
+</ParamField>
+
+### Image Management
+
+<ParamField body="images" type="File[]">
+  New image files to upload. Appended to existing images.
+</ParamField>
+
+<ParamField body="imagesToDelete" type="number[]">
+  Array of image IDs to delete (JSON array as string).
+</ParamField>
+
+<ParamField body="imagesMeta" type="array">
+  Update image metadata (order, main image). JSON array as string.
+  
+  <ParamField body="id" type="number" required>
+    Image ID.
+  </ParamField>
+  
+  <ParamField body="url" type="string" required>
+    Image URL.
+  </ParamField>
+  
+  <ParamField body="orderIndex" type="number" required>
+    Display order.
+  </ParamField>
+  
+  <ParamField body="isMain" type="boolean" required>
+    Main image flag.
+  </ParamField>
+</ParamField>
+
+<ParamField body="existingImageRotations" type="object">
+  Rotate existing images. Object mapping image ID to rotation step (0-3). JSON object as string.
+</ParamField>
+
+<ParamField body="newImageRotations" type="number[]">
+  Rotation for new uploads (0-3 per image).
+</ParamField>
+
+<ParamField body="mainNewImageIndex" type="number">
+  Index of main image among new uploads.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Success indicator.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Success message.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Updated property object (same structure as GET endpoint).
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X PUT "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F "title=Updated Title" \
+  -F "price=280000" \
+  -F "bedrooms=3" \
+  -F "status=activo" \
+  -F 'imagesToDelete=[456]' \
+  -F "images=@new-photo.jpg" \
+  -F 'imagesMeta=[{"id":457,"url":"https://...","orderIndex":0,"isMain":true}]'
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "message": "Property updated successfully",
+  "data": {
+    "id": "123",
+    "title": "Updated Title",
+    "price": 280000,
+    "bedrooms": 3,
+    "status": "activo"
+    // ... full property object
+  }
+}
+```
+
+## Error Responses
+
+### Not Found (404)
+
+```json
+{
+  "success": false,
+  "message": "Property not found"
+}
+```
+
+### Validation Error (400)
+
+```json
+{
+  "success": false,
+  "message": "Validation error",
+  "errors": [...]
+}
+```
+
+### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "message": "Unauthorized"
+}
+```
+
+## Notes
+
+- Only provided fields are updated (partial update)
+- Images are managed separately:
+  - `imagesToDelete`: removes existing images and their storage files
+  - `images`: uploads new images (appended to existing)
+  - `imagesMeta`: updates order and main image flag
+  - `existingImageRotations`: physically rotates images in storage
+- Image rotation is applied physically and saved with 0° rotation in DB
+- When images are deleted, both large and thumbnail variants are removed from storage
+- URL slug is generated if missing during update
+- `updatedAt` timestamp is automatically set

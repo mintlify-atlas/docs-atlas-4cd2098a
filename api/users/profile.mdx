@@ -1,0 +1,105 @@
+---
+title: "Get User Profile"
+api: "GET /api/users/profile"
+description: "Retrieve the authenticated user's profile information"
+---
+
+## Authentication
+
+This endpoint requires authentication. Include a valid authentication token in your request.
+
+## Response
+
+Returns the current user's profile data including basic information and metadata.
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  User profile data
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>
+      User's unique identifier
+    </ResponseField>
+    
+    <ResponseField name="email" type="string" required>
+      User's email address
+    </ResponseField>
+    
+    <ResponseField name="displayName" type="string" required>
+      User's display name
+    </ResponseField>
+    
+    <ResponseField name="photoURL" type="string">
+      URL to user's profile photo
+    </ResponseField>
+    
+    <ResponseField name="role" type="string" required>
+      User's role in the system
+    </ResponseField>
+    
+    <ResponseField name="favorites" type="array" required>
+      Array of favorited properties (use /api/users/favorites for full list)
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string" required>
+      ISO 8601 timestamp of when the user was created
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string" required>
+      ISO 8601 timestamp of when the user was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Error Responses
+
+<ResponseField name="404 Not Found">
+  User not found in the database
+  
+  ```json
+  {
+    "success": false,
+    "message": "User not found"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error while fetching profile
+  
+  ```json
+  {
+    "success": false,
+    "message": "Failed to fetch profile"
+  }
+  ```
+</ResponseField>
+
+## Example Request
+
+```bash cURL
+curl -X GET https://api.inmobiliaria.com/api/users/profile \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "12345",
+    "email": "user@example.com",
+    "displayName": "John Doe",
+    "photoURL": "https://example.com/photo.jpg",
+    "role": "user",
+    "favorites": [],
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```

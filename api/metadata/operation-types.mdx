@@ -1,0 +1,102 @@
+---
+title: "Operation Types"
+description: "Get available operation types for properties"
+---
+
+## Get All Operation Types
+
+<RequestExample>
+```http GET /api/metadata/operation-types
+GET /api/metadata/operation-types
+```
+</RequestExample>
+
+Retrieves all available operation types (sale, rent, etc.) that can be associated with properties.
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of operation type objects
+  
+  <Expandable title="Operation Type Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the operation type
+    </ResponseField>
+    
+    <ResponseField name="name" type="string" required>
+      Display name of the operation type
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string" required>
+      URL-friendly identifier
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Venta",
+      "slug": "venta"
+    },
+    {
+      "id": 2,
+      "name": "Alquiler",
+      "slug": "alquiler"
+    },
+    {
+      "id": 3,
+      "name": "Alquiler temporal",
+      "slug": "alquiler-temporal"
+    },
+    {
+      "id": 4,
+      "name": "Permuta",
+      "slug": "permuta"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Operation Type Reference
+
+<Card title="Venta" icon="hand-holding-dollar">
+  Sale - Property is available for purchase
+</Card>
+
+<Card title="Alquiler" icon="key">
+  Rent - Property is available for long-term rental
+</Card>
+
+<Card title="Alquiler temporal" icon="calendar-days">
+  Temporary Rent - Property is available for short-term or seasonal rental
+</Card>
+
+<Card title="Permuta" icon="arrows-rotate">
+  Exchange - Property is available for exchange/trade
+</Card>
+
+## Usage Example
+
+Use operation types when creating or filtering properties:
+
+```javascript Example Usage
+const operationTypes = await fetch('/api/metadata/operation-types')
+  .then(res => res.json());
+
+// Use in property creation
+const newProperty = {
+  title: "Hermoso departamento en Palermo",
+  operation_type_id: 2, // Alquiler
+  // ... other fields
+};
+```

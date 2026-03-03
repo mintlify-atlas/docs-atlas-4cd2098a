@@ -1,0 +1,384 @@
+---
+title: "List Properties"
+api: "GET /api/properties"
+description: "Retrieve a paginated list of properties with optional filtering"
+---
+
+## Overview
+
+This endpoint returns a paginated list of properties with support for advanced filtering by price, location, property type, operation type, status, and more. Results are sorted by creation date (newest first).
+
+## Authentication
+
+<ParamField header="Authorization" type="string">
+  Optional. Bearer token for authenticated requests. When authenticated, user-specific data may be included.
+</ParamField>
+
+## Query Parameters
+
+### Search & Filtering
+
+<ParamField query="query" type="string">
+  Text search across property title, property type, subtype, and location fields (street, neighborhood, city, province).
+</ParamField>
+
+<ParamField query="propertyType" type="string | string[]">
+  Filter by property type slug(s). Examples: `departamento`, `casa`, `local`. Accepts single value or array.
+</ParamField>
+
+<ParamField query="listingType" type="string | string[]">
+  Filter by operation/listing type slug(s). Examples: `venta`, `alquiler`. Accepts single value or array.
+</ParamField>
+
+<ParamField query="status" type="string | string[]">
+  Filter by status slug(s). Examples: `activo`, `vendido`, `pausado`. If not provided, excludes "pausado" by default.
+</ParamField>
+
+<ParamField query="location" type="string">
+  Filter by location (matches city, province, or neighborhood). Case-insensitive partial match.
+</ParamField>
+
+### Price & Features
+
+<ParamField query="minPrice" type="number">
+  Minimum price filter. Properties with price greater than or equal to this value will be returned.
+</ParamField>
+
+<ParamField query="maxPrice" type="number">
+  Maximum price filter. Properties with price less than or equal to this value will be returned.
+</ParamField>
+
+<ParamField query="bedrooms" type="number">
+  Minimum number of bedrooms. Properties with bedrooms greater than or equal to this value will be returned.
+</ParamField>
+
+<ParamField query="bathrooms" type="number">
+  Minimum number of bathrooms. Properties with bathrooms greater than or equal to this value will be returned.
+</ParamField>
+
+### Pagination
+
+<ParamField query="page" type="number" default="1">
+  Page number for pagination (1-based).
+</ParamField>
+
+<ParamField query="limit" type="number" default="10">
+  Number of results per page.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the request was successful.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of property objects.
+
+  <ResponseField name="id" type="string">
+    Property ID.
+  </ResponseField>
+
+  <ResponseField name="slug" type="string">
+    SEO-friendly URL slug.
+  </ResponseField>
+
+  <ResponseField name="title" type="string">
+    Property title.
+  </ResponseField>
+
+  <ResponseField name="description" type="string">
+    Property description.
+  </ResponseField>
+
+  <ResponseField name="price" type="number">
+    Property price.
+  </ResponseField>
+
+  <ResponseField name="originalPrice" type="number | undefined">
+    Original price before discount.
+  </ResponseField>
+
+  <ResponseField name="expenses" type="number | undefined">
+    Monthly expenses.
+  </ResponseField>
+
+  <ResponseField name="currency" type="string">
+    Currency code (e.g., "ARS", "USD").
+  </ResponseField>
+
+  <ResponseField name="currency_id" type="number">
+    Currency ID.
+  </ResponseField>
+
+  <ResponseField name="propertyType" type="string">
+    Property type slug.
+  </ResponseField>
+
+  <ResponseField name="property_type_id" type="number">
+    Property type ID.
+  </ResponseField>
+
+  <ResponseField name="propertySubtype" type="string">
+    Property subtype slug.
+  </ResponseField>
+
+  <ResponseField name="property_subtype_id" type="number">
+    Property subtype ID.
+  </ResponseField>
+
+  <ResponseField name="listingType" type="string">
+    Operation type slug (e.g., "venta", "alquiler").
+  </ResponseField>
+
+  <ResponseField name="operation_type_id" type="number">
+    Operation type ID.
+  </ResponseField>
+
+  <ResponseField name="status" type="string">
+    Property status slug.
+  </ResponseField>
+
+  <ResponseField name="surfaceCoveredM2" type="number | undefined">
+    Covered surface area in square meters.
+  </ResponseField>
+
+  <ResponseField name="surfaceUncoveredM2" type="number | undefined">
+    Uncovered surface area in square meters.
+  </ResponseField>
+
+  <ResponseField name="lotSize" type="number | undefined">
+    Lot size in square meters.
+  </ResponseField>
+
+  <ResponseField name="rooms" type="number | undefined">
+    Number of rooms.
+  </ResponseField>
+
+  <ResponseField name="bedrooms" type="number | undefined">
+    Number of bedrooms.
+  </ResponseField>
+
+  <ResponseField name="bathrooms" type="number | undefined">
+    Number of bathrooms.
+  </ResponseField>
+
+  <ResponseField name="yearBuilt" type="number | undefined">
+    Year the property was built.
+  </ResponseField>
+
+  <ResponseField name="floor" type="number | undefined">
+    Floor number.
+  </ResponseField>
+
+  <ResponseField name="condition" type="string">
+    Property condition.
+  </ResponseField>
+
+  <ResponseField name="has_balcony" type="boolean">
+    Whether the property has a balcony.
+  </ResponseField>
+
+  <ResponseField name="has_terrace" type="boolean">
+    Whether the property has a terrace.
+  </ResponseField>
+
+  <ResponseField name="has_laundry" type="boolean">
+    Whether the property has a laundry room.
+  </ResponseField>
+
+  <ResponseField name="has_garden" type="boolean">
+    Whether the property has a garden.
+  </ResponseField>
+
+  <ResponseField name="pets_allowed" type="boolean">
+    Whether pets are allowed.
+  </ResponseField>
+
+  <ResponseField name="garage_spaces" type="number">
+    Number of garage spaces.
+  </ResponseField>
+
+  <ResponseField name="youtube_video_url" type="string | null">
+    YouTube video URL for property tour.
+  </ResponseField>
+
+  <ResponseField name="features" type="string[]">
+    Array of feature labels (unified characteristics).
+  </ResponseField>
+
+  <ResponseField name="images" type="string[]">
+    Array of image URLs.
+  </ResponseField>
+
+  <ResponseField name="imagesMeta" type="array">
+    Detailed image metadata.
+    
+    <ResponseField name="id" type="number">
+      Image ID.
+    </ResponseField>
+    
+    <ResponseField name="url" type="string">
+      Image URL.
+    </ResponseField>
+    
+    <ResponseField name="orderIndex" type="number">
+      Display order.
+    </ResponseField>
+    
+    <ResponseField name="isMain" type="boolean">
+      Whether this is the main image.
+    </ResponseField>
+  </ResponseField>
+
+  <ResponseField name="location" type="object | undefined">
+    Property location details.
+    
+    <ResponseField name="id" type="number">
+      Location ID.
+    </ResponseField>
+    
+    <ResponseField name="street" type="string">
+      Street name.
+    </ResponseField>
+    
+    <ResponseField name="streetNumber" type="string">
+      Street number.
+    </ResponseField>
+    
+    <ResponseField name="floorApartment" type="string">
+      Floor and apartment.
+    </ResponseField>
+    
+    <ResponseField name="neighborhood" type="string">
+      Neighborhood.
+    </ResponseField>
+    
+    <ResponseField name="city" type="string">
+      City.
+    </ResponseField>
+    
+    <ResponseField name="province" type="string">
+      Province/state.
+    </ResponseField>
+    
+    <ResponseField name="postalCode" type="string">
+      Postal code.
+    </ResponseField>
+    
+    <ResponseField name="country" type="string">
+      Country.
+    </ResponseField>
+    
+    <ResponseField name="latitude" type="number | undefined">
+      Latitude coordinate.
+    </ResponseField>
+    
+    <ResponseField name="longitude" type="number | undefined">
+      Longitude coordinate.
+    </ResponseField>
+    
+    <ResponseField name="showExactAddress" type="boolean">
+      Whether to show exact address.
+    </ResponseField>
+  </ResponseField>
+
+  <ResponseField name="contactPhone" type="string">
+    Contact phone number.
+  </ResponseField>
+
+  <ResponseField name="contactEmail" type="string">
+    Contact email.
+  </ResponseField>
+
+  <ResponseField name="viewsCount" type="number">
+    Number of views.
+  </ResponseField>
+
+  <ResponseField name="createdAt" type="string">
+    ISO 8601 creation timestamp.
+  </ResponseField>
+
+  <ResponseField name="updatedAt" type="string">
+    ISO 8601 last update timestamp.
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="pagination" type="object">
+  Pagination metadata.
+
+  <ResponseField name="currentPage" type="number">
+    Current page number.
+  </ResponseField>
+
+  <ResponseField name="totalPages" type="number">
+    Total number of pages.
+  </ResponseField>
+
+  <ResponseField name="totalItems" type="number">
+    Total number of items.
+  </ResponseField>
+
+  <ResponseField name="limit" type="number">
+    Items per page.
+  </ResponseField>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://api.example.com/api/properties?propertyType=departamento&listingType=venta&minPrice=100000&maxPrice=500000&city=Buenos%20Aires&bedrooms=2&page=1&limit=20" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "123",
+      "slug": "hermoso-departamento-palermo-4d",
+      "title": "Hermoso departamento en Palermo",
+      "description": "Excelente departamento de 2 ambientes...",
+      "price": 250000,
+      "currency": "USD",
+      "currency_id": 2,
+      "propertyType": "departamento",
+      "property_type_id": 1,
+      "listingType": "venta",
+      "operation_type_id": 1,
+      "status": "activo",
+      "surfaceCoveredM2": 65,
+      "bedrooms": 2,
+      "bathrooms": 1,
+      "has_balcony": true,
+      "features": ["Balcón", "Luminoso", "Cerca del subte"],
+      "images": ["https://..."],
+      "location": {
+        "city": "Buenos Aires",
+        "province": "CABA",
+        "neighborhood": "Palermo",
+        "showExactAddress": false
+      },
+      "viewsCount": 152,
+      "createdAt": "2026-03-01T10:30:00Z",
+      "updatedAt": "2026-03-02T15:20:00Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 47,
+    "limit": 20
+  }
+}
+```
+
+## Notes
+
+- By default, properties with status "pausado" are excluded from results
+- Text search is case-insensitive and uses partial matching
+- Multiple filter values can be combined for property types and listing types
+- Results are always ordered by creation date (newest first)

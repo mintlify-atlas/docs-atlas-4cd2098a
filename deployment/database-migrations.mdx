@@ -1,0 +1,210 @@
+---
+title: Database Migrations
+description: Complete guide to database setup and migration procedures
+---
+
+This guide covers database setup, migrations, and data preservation strategies for the Inmobiliaria API.
+
+## Initial Database Setup
+
+For a fresh database installation, use the automated setup script:
+
+```bash
+npm run db:setup
+```
+
+This script:
+- Applies the initial schema from `src/db/migrations/0000_initial_schema.sql`
+- Creates all tables (users, properties, contacts, etc.)
+- Seeds initial data (property types, characteristics, admin user)
+
+## Drizzle Migration Commands
+
+The API uses Drizzle ORM for database migrations. Available commands:
+
+### Generate Migrations
+
+Create migration files from schema changes:
+
+```bash
+npm run db:generate
+```
+
+This analyzes your Drizzle schema and generates SQL migration files in `src/db/migrations/`.
+
+### Apply Migrations
+
+Run pending migrations against your database:
+
+```bash
+npm run db:migrate
+```
+
+This applies all migration files in order to bring your database up to date.
+
+### Push Schema Changes
+
+<Warning>
+  **Development Only**: This command directly pushes schema changes without generating migration files.
+</Warning>
+
+```bash
+npm run db:push
+```
+
+Use this for rapid prototyping in development. **Not recommended for production.**
+
+### Seed Database
+
+Populate the database with initial data:
+
+```bash
+npm run db:seed
+```
+
+This creates:
+- Admin user account
+- Property types (house, apartment, land, commercial)
+- Property characteristics (bedrooms, bathrooms, parking)
+- Other metadata
+
+### Run Custom Migrations
+
+Execute specific migration scripts:
+
+```bash
+npm run db:migrate:run
+```
+
+## Production Migration with Data Preservation
+
+<Warning>
+  **Backup First**: This process involves resetting your database schema. Always backup your data before proceeding.
+</Warning>
+
+When migrating a production database with existing property listings, follow these steps to preserve data.
+
+### Prerequisites
+
+- Access to your VPS terminal
+- `pg_dump` and `psql` tools installed
+- Your production `DATABASE_URL` environment variable
+
+<Steps>
+  <Step title="Backup Property Listings">
+    Export existing property data to a file using `--data-only` to avoid schema conflicts:
+
+    ```bash
+    # Replace with your actual DATABASE_URL
+    pg_dump "postgres://user:pass@host:port/dbname" \
+      --table=properties \
+      --data-only \
+      --column-inserts \
+      > properties_backup.sql
+    ```
+
+    This creates a SQL file containing INSERT statements for all properties.
+  </Step>
+
+  <Step title="Reset Database Schema">
+    <Warning>
+      **Destructive Operation**: This will delete all tables and data.
+    </Warning>
+
+    Connect to your database and reset the public schema:
+
+    ```bash
+    psql "postgres://user:pass@host:port/dbname" \
+      -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+    ```
+  </Step>
+
+  <Step title="Apply New Schema">
+    Run Drizzle migrations to create the new table structure:
+
+    ```bash
+    # From your project root on the VPS
+    npm run db:migrate
+    ```
+  </Step>
+
+  <Step title="Seed Initial Data">
+    Populate the database with metadata and admin user:
+
+    ```bash
+    npm run db:seed
+    ```
+
+    This creates:
+    - Admin user account
+    - Property types and characteristics
+    - Default metadata
+  </Step>
+
+  <Step title="Restore Property Listings">
+    Import the backed-up property data:
+
+    ```bash
+    psql "postgres://user:pass@host:port/dbname" \
+      -f properties_backup.sql
+    ```
+  </Step>
+
+  <Step title="Verification">
+    Verify the migration succeeded:
+
+    1. Log in to your application
+    2. Verify property listings are visible
+    3. Test new features (authentication, etc.)
+    4. Check that all functionality works correctly
+  </Step>
+</Steps>
+
+## Migration Files
+
+The API includes these migration files in `src/db/migrations/`:
+
+- `0000_initial_schema.sql` - Initial database schema
+- `0001_add_garage_spaces.sql` - Adds garage spaces column
+- `0003_add_youtube_video_url.sql` - Adds YouTube video URL field
+
+Migrations are applied in numerical order when running `npm run db:migrate`.
+
+## Database Connection
+
+Ensure your `DATABASE_URL` environment variable is set:
+
+```bash
+DATABASE_URL="postgres://user:password@host:port/database?sslmode=require"
+```
+
+<Note>
+  For production databases, always use SSL (`sslmode=require`) to encrypt database connections.
+</Note>
+
+## Troubleshooting
+
+### Connection Issues
+
+If you encounter connection errors:
+
+1. Verify `DATABASE_URL` is correctly set
+2. Check that your database accepts connections from your server IP
+3. Ensure SSL is properly configured
+4. Test connection with `psql` directly
+
+### Migration Failures
+
+If migrations fail:
+
+1. Check database logs for specific errors
+2. Verify you have sufficient database permissions
+3. Ensure no conflicting schema changes exist
+4. Review migration files in `src/db/migrations/`
+
+### Data Loss Prevention
+
+- Always backup before migrations: `pg_dump -Fc database > backup.dump`
+- Test migrations in staging environment first
+- Use `--data-only` flag when backing up for schema changes
+- Keep backup files until migration is verified successful

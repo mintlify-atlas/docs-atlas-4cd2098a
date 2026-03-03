@@ -1,0 +1,79 @@
+---
+title: Deployment Overview
+description: Requirements and checklist for deploying the Inmobiliaria API
+---
+
+This guide covers the requirements and preparation needed to deploy the Inmobiliaria API to production.
+
+## Server Requirements
+
+<Steps>
+  <Step title="Node.js Runtime">
+    - Node.js version 18.x or higher
+    - npm or yarn package manager
+  </Step>
+
+  <Step title="PostgreSQL Database">
+    - PostgreSQL 14 or higher
+    - `postgresql-client` tools (`pg_dump`, `psql`) for migrations
+    - Connection pooling support
+  </Step>
+
+  <Step title="Environment Setup">
+    - VPS or cloud hosting with SSH access
+    - Domain name configured (for production URLs)
+    - SSL/TLS certificate for HTTPS
+  </Step>
+</Steps>
+
+## Pre-Deployment Checklist
+
+Before deploying to production, ensure you have:
+
+- [ ] Production database created and accessible
+- [ ] All required environment variables configured
+- [ ] Database connection string with SSL enabled
+- [ ] HTTPS configured for your domain
+- [ ] Email service configured (Resend API key)
+- [ ] Storage configured (local or S3-compatible)
+- [ ] Process manager installed (PM2, systemd, or Docker)
+
+## Build Process
+
+The API uses TypeScript and must be compiled before deployment:
+
+```bash
+npm run build
+```
+
+This command:
+1. Installs all dependencies
+2. Compiles TypeScript to JavaScript in the `dist/` directory
+
+After building, start the server with:
+
+```bash
+npm start
+```
+
+This runs the compiled application from `dist/index.js`.
+
+## Environment Variables
+
+Refer to the [Production Deployment](/deployment/production) guide for required environment variables.
+
+## Database Setup
+
+Refer to the [Database Migrations](/deployment/database-migrations) guide for setting up your production database.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Migrations" icon="database" href="/deployment/database-migrations">
+    Learn how to set up and migrate your database
+  </Card>
+  
+  <Card title="Production Deployment" icon="rocket" href="/deployment/production">
+    Configure production environment and security
+  </Card>
+</CardGroup>

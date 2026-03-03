@@ -1,0 +1,720 @@
+---
+title: 'Storage Configuration'
+description: 'File storage configuration for property images - local filesystem vs AWS S3'
+icon: 'hard-drive'
+---
+
+## Overview
+
+The Inmobiliaria API supports two storage backends for property images:
+
+- **Local Filesystem** - Store files on the server (development/simple deployments)
+- **AWS S3** - Store files in cloud object storage (production/scalable deployments)
+
+The storage driver is configured via the `STORAGE_DRIVER` environment variable.
+
+## Storage Driver Selection
+
+Set the storage backend in your `.env` file:
+
+```bash .env
+STORAGE_DRIVER=local  # or 's3'
+```
+
+The application automatically loads the appropriate driver:
+
+```typescript src/services/storage/types.ts
+const driver = (process.env.STORAGE_DRIVER || "local").toLowerCase();
+
+if (driver === "s3") {
+  return s3StorageDriver();
+} else {
+  return localStorageDriver();
+}
+```
+
+## Local Storage
+
+Stores uploaded files on the server's filesystem.
+
+### Configuration
+
+<ParamField path="STORAGE_DRIVER" type="string" default="local">
+  Set to `local` to use filesystem storage.
+</ParamField>
+
+<ParamField path="UPLOAD_DIR" type="string" default="uploads">
+  Directory path where files are stored (relative to project root).
+  
+  **Examples:**
+  - `uploads` (default)
+  - `./public/uploads`
+  - `/var/www/inmobiliaria/uploads`
+  
+  <Note>
+    The directory is automatically created if it doesn't exist.
+  </Note>
+</ParamField>
+
+<ParamField path="PUBLIC_UPLOAD_URL_BASE" type="string" default="/uploads">
+  URL path for accessing uploaded files.
+  
+  **Examples:**
+  - `/uploads` (default - relative path)
+  - `https://yourdomain.com/uploads` (absolute URL)
+  
+  <Info>
+    The Express server automatically serves files from this path when using local storage.
+  </Info>
+</ParamField>
+
+### Implementation
+
+The local storage driver (`src/services/storage/local.ts`):
+
+```typescript
+export function localStorageDriver(): StorageDriver {
+  const uploadDir = process.env.UPLOAD_DIR || "uploads";
+  const resolvedUploadDir = path.resolve(process.cwd(), uploadDir);
+  
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(resolvedUploadDir)) {
+    fs.mkdirSync(resolvedUploadDir, { recursive: true });
+  }
+
+  const basePublic = process.env.PUBLIC_UPLOAD_URL_BASE || "/uploads";
+
+  return {
+    async uploadObject(key, data, contentType) {
+      const filePath = path.join(resolvedUploadDir, key);
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      await fs.promises.writeFile(filePath, data);
+      const url = `${basePublic}/${key}`.replace(/\\/g, "/");
+      return { key, url };
+    },
+    // ... other methods
+  };
+}
+```
+
+### File Structure
+
+Files are organized by property:
+
+```
+uploads/
+├── properties/
+│   ├── 1/
+│   │   ├── abc123-lg.webp
+│   │   ├── abc123-thumb.webp
+│   │   ├── def456-lg.webp
+│   │   └── def456-thumb.webp
+│   ├── 2/
+│   │   ├── ghi789-lg.webp
+│   │   └── ghi789-thumb.webp
+```
+
+### Static File Serving
+
+The Express server serves local uploads:
+
+```typescript src/index.ts
+const storageDriver = (process.env.STORAGE_DRIVER || "local").toLowerCase();
+const uploadDir = process.env.UPLOAD_DIR || "uploads";
+const publicUploadBase = process.env.PUBLIC_UPLOAD_URL_BASE || "/uploads";
+
+if (storageDriver === "local") {
+  app.use(
+    publicUploadBase,
+    express.static(path.resolve(process.cwd(), uploadDir), {
+      maxAge: "7d",
+      setHeaders: (res) => {
+        res.setHeader("Cache-Control", "public, max-age=604800");
+      },
+    })
+  );
+}
+```
+
+**Cache settings:**
+- Cache-Control: 7 days
+- Public caching enabled
+- Suitable for static property images
+
+### Pros & Cons
+
+<AccordionGroup>
+  <Accordion title="Advantages" icon="check">
+    - **Simple setup** - No external dependencies
+    - **No additional costs** - Uses existing server storage
+    - **Fast local access** - No network latency
+    - **Easy debugging** - Files visible on filesystem
+  </Accordion>
+  
+  <Accordion title="Disadvantages" icon="xmark">
+    - **Not scalable** - Limited to single server
+    - **Server disk space** - Constrained by server storage
+    - **No CDN** - Higher bandwidth costs
+    - **Deployment challenges** - Files lost on container restart
+    - **No geographic distribution** - Slower for global users
+  </Accordion>
+</AccordionGroup>
+
+### Best For
+
+- Development environments
+- Small deployments (< 1000 properties)
+- Single-server setups
+- Budget-constrained projects
+
+## AWS S3 Storage
+
+Stores files in AWS S3 or S3-compatible services (Cloudflare R2, Backblaze B2, MinIO).
+
+### Configuration
+
+<ParamField path="STORAGE_DRIVER" type="string">
+  Set to `s3` to use S3 storage.
+</ParamField>
+
+<ParamField path="S3_BUCKET" type="string" required>
+  S3 bucket name.
+  
+  **Example:** `inmobiliaria-uploads`
+  
+  <Warning>
+    Bucket must be created before running the application.
+  </Warning>
+</ParamField>
+
+<ParamField path="S3_REGION" type="string" required>
+  AWS region or `auto` for Cloudflare R2.
+  
+  **Examples:**
+  - `us-east-1` (AWS)
+  - `eu-west-1` (AWS)
+  - `auto` (Cloudflare R2)
+</ParamField>
+
+<ParamField path="S3_ACCESS_KEY_ID" type="string" required>
+  AWS access key ID with S3 permissions.
+  
+  **Example:** `AKIAIOSFODNN7EXAMPLE`
+  
+  **Required IAM permissions:**
+  - `s3:PutObject` - Upload files
+  - `s3:GetObject` - Read files
+  - `s3:DeleteObject` - Delete files
+</ParamField>
+
+<ParamField path="S3_SECRET_ACCESS_KEY" type="string" required>
+  AWS secret access key.
+  
+  **Example:** `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`
+  
+  <Warning>
+    Keep secret. Never commit to version control.
+  </Warning>
+</ParamField>
+
+<ParamField path="S3_ENDPOINT" type="string" optional>
+  Custom endpoint for S3-compatible services.
+  
+  **Leave empty for AWS S3.** Only set for non-AWS services:
+  
+  - **Cloudflare R2:** `https://[account-id].r2.cloudflarestorage.com`
+  - **Backblaze B2:** `https://s3.us-west-000.backblazeb2.com`
+  - **MinIO:** `https://minio.yourdomain.com`
+</ParamField>
+
+<ParamField path="PUBLIC_UPLOAD_URL_BASE" type="string" optional>
+  CDN or public URL for accessing files.
+  
+  **If not set:** Uses default S3 URL format
+  - `https://[bucket].s3.[region].amazonaws.com`
+  
+  **If set:** Use custom domain/CDN
+  - CloudFront: `https://d111111abcdef8.cloudfront.net`
+  - Cloudflare R2: `https://pub-xxxxx.r2.dev`
+  - Custom domain: `https://cdn.yourdomain.com`
+</ParamField>
+
+### Implementation
+
+The S3 storage driver (`src/services/storage/s3.ts`):
+
+```typescript
+import { S3Client, PutObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+
+export function s3StorageDriver(): StorageDriver {
+  const bucket = requiredEnv("S3_BUCKET");
+  const region = requiredEnv("S3_REGION");
+  const accessKeyId = requiredEnv("S3_ACCESS_KEY_ID");
+  const secretAccessKey = requiredEnv("S3_SECRET_ACCESS_KEY");
+  const endpoint = process.env.S3_ENDPOINT?.trim() || undefined;
+  const publicBase = (process.env.PUBLIC_UPLOAD_URL_BASE || "").trim();
+
+  const s3 = new S3Client({
+    region,
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: !!endpoint, // Required for some S3-compatible services
+  });
+
+  return {
+    async uploadObject(key, data, contentType) {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: data,
+          ContentType: contentType,
+        })
+      );
+      const url = publicBase
+        ? `${publicBase.replace(/\/$/, "")}/${encodeURI(key)}`
+        : `https://${bucket}.s3.${region}.amazonaws.com/${encodeURI(key)}`;
+      return { key, url };
+    },
+    // ... other methods
+  };
+}
+```
+
+### IAM Policy Example
+
+Minimum required permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::inmobiliaria-uploads/*"
+    }
+  ]
+}
+```
+
+### S3 Bucket Configuration
+
+<Steps>
+  <Step title="Create Bucket">
+    Create an S3 bucket in your AWS account or S3-compatible service.
+    
+    **Recommended settings:**
+    - Block public access: OFF (if serving directly)
+    - Versioning: Optional
+    - Encryption: Enabled
+  </Step>
+  
+  <Step title="Configure CORS">
+    Allow frontend uploads (if using presigned URLs):
+    
+    ```json
+    [
+      {
+        "AllowedOrigins": ["https://yourdomain.com"],
+        "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+        "AllowedHeaders": ["*"],
+        "MaxAgeSeconds": 3000
+      }
+    ]
+    ```
+  </Step>
+  
+  <Step title="Set Bucket Policy (Optional)">
+    For public read access:
+    
+    ```json
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "PublicReadGetObject",
+          "Effect": "Allow",
+          "Principal": "*",
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::inmobiliaria-uploads/*"
+        }
+      ]
+    }
+    ```
+    
+    <Note>
+      Skip this if using CloudFront or requiring authenticated access.
+    </Note>
+  </Step>
+  
+  <Step title="Configure CDN (Recommended)">
+    Set up CloudFront distribution or equivalent:
+    
+    - **Origin:** S3 bucket
+    - **Cache behavior:** Cache based on headers
+    - **Custom domain:** Optional
+    - **SSL:** Required for production
+    
+    Then set `PUBLIC_UPLOAD_URL_BASE` to CDN URL.
+  </Step>
+</Steps>
+
+### Pros & Cons
+
+<AccordionGroup>
+  <Accordion title="Advantages" icon="check">
+    - **Scalable** - Handles millions of files
+    - **Reliable** - 99.999999999% durability (AWS)
+    - **CDN integration** - Fast global delivery
+    - **No server storage** - Independent of server disk
+    - **Stateless** - Works with container deployments
+    - **Cost-effective** - Pay only for what you use
+  </Accordion>
+  
+  <Accordion title="Disadvantages" icon="xmark">
+    - **External dependency** - Requires S3 account
+    - **Network latency** - Upload/download over network
+    - **Costs** - Storage + transfer fees
+    - **Complex setup** - IAM, buckets, CDN configuration
+  </Accordion>
+</AccordionGroup>
+
+### Best For
+
+- Production environments
+- Scalable deployments
+- Container-based hosting (Docker, Kubernetes)
+- Global user base (with CDN)
+- High-traffic applications
+
+## S3-Compatible Services
+
+### Cloudflare R2
+
+Zero egress fees, S3-compatible API.
+
+```bash .env
+STORAGE_DRIVER=s3
+S3_BUCKET=inmobiliaria-uploads
+S3_REGION=auto
+S3_ACCESS_KEY_ID=your-r2-access-key
+S3_SECRET_ACCESS_KEY=your-r2-secret-key
+S3_ENDPOINT=https://[account-id].r2.cloudflarestorage.com
+PUBLIC_UPLOAD_URL_BASE=https://pub-xxxxx.r2.dev
+```
+
+**Benefits:**
+- No egress fees
+- Global edge network
+- Automatic caching
+
+### Backblaze B2
+
+Low-cost S3-compatible storage.
+
+```bash .env
+STORAGE_DRIVER=s3
+S3_BUCKET=inmobiliaria-uploads
+S3_REGION=us-west-000
+S3_ACCESS_KEY_ID=your-b2-key-id
+S3_SECRET_ACCESS_KEY=your-b2-application-key
+S3_ENDPOINT=https://s3.us-west-000.backblazeb2.com
+```
+
+**Benefits:**
+- Very low cost ($5/TB/month)
+- Free egress up to 3x storage
+- S3-compatible API
+
+### MinIO
+
+Self-hosted S3-compatible storage.
+
+```bash .env
+STORAGE_DRIVER=s3
+S3_BUCKET=inmobiliaria-uploads
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=minioadmin
+S3_SECRET_ACCESS_KEY=minioadmin
+S3_ENDPOINT=https://minio.yourdomain.com
+```
+
+**Benefits:**
+- Self-hosted (full control)
+- No external costs
+- S3-compatible API
+- Open source
+
+## Image Processing
+
+All uploaded images are processed into two variants using Sharp:
+
+### Variants
+
+| Variant | Suffix | Max Dimensions | Quality | Purpose |
+|---------|--------|----------------|---------|----------|
+| **Large** | `-lg.webp` | 1920x1080 | 85% | Property detail pages |
+| **Thumbnail** | `-thumb.webp` | 400x300 | 80% | Listings, previews |
+
+### Processing Pipeline
+
+```typescript
+import sharp from "sharp";
+
+// Large variant
+const lgData = await sharp(buffer)
+  .resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
+  .webp({ quality: 85 })
+  .toBuffer();
+
+// Thumbnail variant
+const thumbData = await sharp(buffer)
+  .resize(400, 300, { fit: "cover" })
+  .webp({ quality: 80 })
+  .toBuffer();
+```
+
+### Storage Keys
+
+Images are stored with predictable keys:
+
+```
+properties/{propertyId}/{uuid}-lg.webp
+properties/{propertyId}/{uuid}-thumb.webp
+```
+
+**Example:**
+```
+properties/42/a3f5c8d9-lg.webp      (Large variant)
+properties/42/a3f5c8d9-thumb.webp   (Thumbnail)
+```
+
+The database stores the **base key** (without suffix):
+
+```typescript
+// Stored in database
+imageKey: "properties/42/a3f5c8d9"
+
+// Accessed as
+imageUrl: "https://cdn.example.com/properties/42/a3f5c8d9-lg.webp"
+```
+
+## Upload Limits
+
+Configured in `src/middleware/uploads.ts`:
+
+<ParamField path="MAX_UPLOAD_SIZE_MB" type="number" default="10">
+  Maximum file size per image in megabytes.
+  
+  ```typescript
+  export const MAX_FILE_SIZE_BYTES =
+    (parseInt(process.env.MAX_UPLOAD_SIZE_MB || "10", 10) || 10) * 1024 * 1024;
+  ```
+</ParamField>
+
+<ParamField path="MAX_UPLOAD_FILES" type="number" default="10">
+  Maximum number of files per upload request.
+  
+  ```typescript
+  export const MAX_FILE_COUNT = parseInt(
+    process.env.MAX_UPLOAD_FILES || "10",
+    10
+  );
+  ```
+</ParamField>
+
+### File Filter
+
+Only image files are accepted:
+
+```typescript
+const fileFilter: multer.Options["fileFilter"] = (_req, file, cb) => {
+  if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image uploads are allowed"));
+  }
+};
+```
+
+**Accepted MIME types:**
+- `image/jpeg`
+- `image/png`
+- `image/webp`
+- `image/gif`
+- Any other `image/*` type
+
+## Migration Guide
+
+### Local to S3
+
+<Steps>
+  <Step title="Set up S3 bucket">
+    Create bucket and configure IAM credentials.
+  </Step>
+  
+  <Step title="Update environment variables">
+    ```bash
+    STORAGE_DRIVER=s3
+    S3_BUCKET=inmobiliaria-uploads
+    S3_REGION=us-east-1
+    S3_ACCESS_KEY_ID=AKIA...
+    S3_SECRET_ACCESS_KEY=...
+    ```
+  </Step>
+  
+  <Step title="Upload existing files">
+    Use AWS CLI to sync local files:
+    
+    ```bash
+    aws s3 sync ./uploads s3://inmobiliaria-uploads/
+    ```
+  </Step>
+  
+  <Step title="Update database URLs (if needed)">
+    If `PUBLIC_UPLOAD_URL_BASE` changed, update `property_images.image_url`:
+    
+    ```sql
+    UPDATE property_images
+    SET image_url = REPLACE(
+      image_url,
+      '/uploads/',
+      'https://cdn.example.com/'
+    );
+    ```
+  </Step>
+  
+  <Step title="Test uploads">
+    Upload a new image and verify it appears in S3.
+  </Step>
+  
+  <Step title="Clean up local files">
+    Once confirmed, remove local uploads directory.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Local: Upload directory not writable">
+    **Error:** `EACCES: permission denied`
+    
+    **Solutions:**
+    - Check directory permissions: `ls -la uploads/`
+    - Grant write access: `chmod 755 uploads/`
+    - Ensure process user has write permissions
+    - Use absolute path in `UPLOAD_DIR`
+  </Accordion>
+  
+  <Accordion title="Local: Files not accessible">
+    **Error:** 404 when accessing image URLs
+    
+    **Solutions:**
+    - Verify `PUBLIC_UPLOAD_URL_BASE` matches static route
+    - Check Express static middleware is configured
+    - Ensure files exist in upload directory
+    - Check file permissions (readable by server process)
+  </Accordion>
+  
+  <Accordion title="S3: Access Denied">
+    **Error:** `Access Denied` when uploading
+    
+    **Solutions:**
+    - Verify IAM permissions include `s3:PutObject`
+    - Check bucket name is correct
+    - Ensure access keys are valid
+    - Verify bucket policy doesn't block uploads
+  </Accordion>
+  
+  <Accordion title="S3: Invalid Credentials">
+    **Error:** `The AWS Access Key Id you provided does not exist`
+    
+    **Solutions:**
+    - Verify `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`
+    - Check credentials haven't expired
+    - For IAM roles, ensure role is attached
+    - For Cloudflare R2, use R2-specific tokens
+  </Accordion>
+  
+  <Accordion title="S3: Endpoint Resolution Failed">
+    **Error:** `Could not resolve host`
+    
+    **Solutions:**
+    - For AWS S3: Remove or unset `S3_ENDPOINT`
+    - For R2/B2: Verify endpoint URL is correct
+    - Check network connectivity
+    - Ensure region is valid
+  </Accordion>
+  
+  <Accordion title="Images not displaying">
+    **Error:** Images upload but don't show on frontend
+    
+    **Solutions:**
+    - Check `PUBLIC_UPLOAD_URL_BASE` is accessible
+    - Verify CORS headers for S3 bucket
+    - Check CDN configuration
+    - Inspect network tab for 404/403 errors
+    - Verify image URLs in database match storage
+  </Accordion>
+</AccordionGroup>
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="CDN Configuration">
+    Use a CDN for faster image delivery:
+    
+    **CloudFront (AWS):**
+    - Create distribution with S3 origin
+    - Enable compression
+    - Set cache TTL (e.g., 1 year for images)
+    - Configure custom domain
+    
+    **Cloudflare:**
+    - Enable R2 public bucket
+    - Automatic global caching
+    - Free bandwidth
+  </Accordion>
+  
+  <Accordion title="Image Optimization">
+    Already implemented:
+    - WebP format (smaller than JPEG/PNG)
+    - Responsive variants (lg/thumb)
+    - Quality optimization (85%/80%)
+    
+    Additional optimizations:
+    - Enable CDN image transformations
+    - Use responsive images in frontend (`<picture>`, `srcset`)
+    - Lazy loading for below-fold images
+  </Accordion>
+  
+  <Accordion title="Caching Headers">
+    **Local storage:** 7-day cache (configured)
+    
+    **S3 storage:** Set `Cache-Control` in uploads:
+    
+    ```typescript
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: data,
+        ContentType: contentType,
+        CacheControl: "public, max-age=31536000", // 1 year
+      })
+    );
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## See Also
+
+- [Environment Variables](/configuration/environment-variables) - Storage configuration variables
+- [Database Configuration](/configuration/database) - Image metadata storage
+- [Properties API](/api/properties/images) - Image upload endpoint

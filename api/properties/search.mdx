@@ -1,0 +1,179 @@
+---
+title: "Search Properties"
+api: "GET /api/properties"
+description: "Advanced property search with filters"
+---
+
+## Overview
+
+The search functionality is provided through the main list endpoint (`GET /api/properties`) using query parameters. There is no separate `/search` endpoint.
+
+This page provides examples of common search scenarios.
+
+## Search by Text
+
+Search across title, property type, subtype, and location fields:
+
+```bash
+curl -X GET "https://api.example.com/api/properties?query=palermo" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+The `query` parameter searches:
+- Property title
+- Property type name
+- Property subtype name
+- Location (street, neighborhood, city, province)
+
+## Search by Property Type
+
+Filter by one or more property types:
+
+```bash
+# Single type
+curl -X GET "https://api.example.com/api/properties?propertyType=departamento"
+
+# Multiple types
+curl -X GET "https://api.example.com/api/properties?propertyType=departamento&propertyType=casa"
+```
+
+## Search by Operation Type
+
+Filter by sale or rent:
+
+```bash
+# For sale
+curl -X GET "https://api.example.com/api/properties?listingType=venta"
+
+# For rent
+curl -X GET "https://api.example.com/api/properties?listingType=alquiler"
+```
+
+## Price Range Search
+
+Filter by minimum and/or maximum price:
+
+```bash
+curl -X GET "https://api.example.com/api/properties?minPrice=100000&maxPrice=500000"
+```
+
+## Location-Based Search
+
+Search by city, province, or neighborhood:
+
+```bash
+curl -X GET "https://api.example.com/api/properties?location=Buenos%20Aires"
+```
+
+Matches any of:
+- City
+- Province
+- Neighborhood
+
+## Room-Based Search
+
+Filter by minimum bedrooms or bathrooms:
+
+```bash
+# At least 2 bedrooms
+curl -X GET "https://api.example.com/api/properties?bedrooms=2"
+
+# At least 2 bathrooms
+curl -X GET "https://api.example.com/api/properties?bathrooms=2"
+
+# Both
+curl -X GET "https://api.example.com/api/properties?bedrooms=2&bathrooms=2"
+```
+
+## Combined Search
+
+Combine multiple filters:
+
+```bash
+curl -X GET "https://api.example.com/api/properties?propertyType=departamento&listingType=venta&location=Palermo&minPrice=200000&maxPrice=400000&bedrooms=2&bathrooms=1&page=1&limit=20"
+```
+
+## Status Filtering
+
+Filter by property status:
+
+```bash
+# Active properties only
+curl -X GET "https://api.example.com/api/properties?status=activo"
+
+# Sold properties
+curl -X GET "https://api.example.com/api/properties?status=vendido"
+
+# Multiple statuses
+curl -X GET "https://api.example.com/api/properties?status=activo&status=reservado"
+```
+
+**Note**: If no status filter is provided, "pausado" (paused) properties are automatically excluded.
+
+## Pagination
+
+Control result set size and pages:
+
+```bash
+# Page 2, 20 results per page
+curl -X GET "https://api.example.com/api/properties?page=2&limit=20"
+```
+
+## Search Response
+
+All searches return the same response format:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "123",
+      "title": "Departamento en Palermo",
+      "price": 250000,
+      "bedrooms": 2,
+      "bathrooms": 1,
+      "propertyType": "departamento",
+      "listingType": "venta",
+      "location": {
+        "city": "Buenos Aires",
+        "neighborhood": "Palermo"
+      }
+      // ... other fields
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 47,
+    "limit": 20
+  }
+}
+```
+
+## Search Behavior
+
+### Text Search
+- Case-insensitive
+- Partial matching with ILIKE
+- Searches across multiple fields with OR logic
+
+### Filters
+- All filters use AND logic (all conditions must match)
+- Price filters are inclusive (greater than or equal to minPrice, less than or equal to maxPrice)
+- Room filters are minimum values (greater than or equal to specified count)
+
+### Default Behavior
+- Properties with status "pausado" are excluded unless explicitly requested
+- Results ordered by creation date (newest first)
+- Default page size: 10 items
+- Default page: 1
+
+## Performance Tips
+
+- Use specific filters to reduce result set size
+- Implement pagination for large result sets
+- Text search is case-insensitive but may be slower on large datasets
+- Property type and operation type filters use indexed foreign keys
+
+For complete parameter documentation, see the [List Properties](/api/properties/list) endpoint.

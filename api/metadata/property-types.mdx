@@ -1,0 +1,248 @@
+---
+title: "Property Types"
+description: "Get property types and their subtypes"
+---
+
+## Get All Property Types
+
+<RequestExample>
+```http GET /api/metadata/property-types
+GET /api/metadata/property-types
+```
+</RequestExample>
+
+Retrieves all available property types with their associated subtypes.
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of property type objects
+  
+  <Expandable title="Property Type Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the property type
+    </ResponseField>
+    
+    <ResponseField name="name" type="string" required>
+      Display name of the property type
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string" required>
+      URL-friendly identifier
+    </ResponseField>
+    
+    <ResponseField name="subtypes" type="array" required>
+      Array of subtype objects associated with this type
+      
+      <Expandable title="Subtype Object">
+        <ResponseField name="id" type="integer" required>
+          Unique identifier for the subtype
+        </ResponseField>
+        
+        <ResponseField name="name" type="string" required>
+          Display name of the subtype
+        </ResponseField>
+        
+        <ResponseField name="slug" type="string" required>
+          URL-friendly identifier
+        </ResponseField>
+        
+        <ResponseField name="type_id" type="integer" required>
+          ID of the parent property type
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Response
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Casa",
+      "slug": "casa",
+      "subtypes": [
+        {
+          "id": 1,
+          "name": "Casa en barrio cerrado",
+          "slug": "casa-barrio-cerrado",
+          "type_id": 1
+        },
+        {
+          "id": 2,
+          "name": "Casa en country",
+          "slug": "casa-country",
+          "type_id": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Departamento",
+      "slug": "departamento",
+      "subtypes": [
+        {
+          "id": 3,
+          "name": "Monoambiente",
+          "slug": "monoambiente",
+          "type_id": 2
+        },
+        {
+          "id": 4,
+          "name": "Departamento tipo dúplex",
+          "slug": "departamento-duplex",
+          "type_id": 2
+        },
+        {
+          "id": 5,
+          "name": "Departamento en torre",
+          "slug": "departamento-torre",
+          "type_id": 2
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "PH",
+      "slug": "ph",
+      "subtypes": [
+        {
+          "id": 6,
+          "name": "PH con jardín",
+          "slug": "ph-jardin",
+          "type_id": 3
+        },
+        {
+          "id": 7,
+          "name": "PH al fondo",
+          "slug": "ph-fondo",
+          "type_id": 3
+        }
+      ]
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Get Property Subtypes
+
+<RequestExample>
+```http GET /api/metadata/property-subtypes
+GET /api/metadata/property-subtypes
+```
+
+```http GET /api/metadata/property-subtypes?propertyTypeId=1
+GET /api/metadata/property-subtypes?propertyTypeId=1
+```
+</RequestExample>
+
+Retrieves property subtypes, optionally filtered by property type.
+
+### Query Parameters
+
+<ParamField query="propertyTypeId" type="integer" optional>
+  Filter subtypes by property type ID. If not provided, returns all subtypes.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of property subtype objects
+  
+  <Expandable title="Subtype Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the subtype
+    </ResponseField>
+    
+    <ResponseField name="name" type="string" required>
+      Display name of the subtype
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string" required>
+      URL-friendly identifier
+    </ResponseField>
+    
+    <ResponseField name="type_id" type="integer" required>
+      ID of the parent property type
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json All Subtypes
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Casa en barrio cerrado",
+      "slug": "casa-barrio-cerrado",
+      "type_id": 1
+    },
+    {
+      "id": 2,
+      "name": "Casa en country",
+      "slug": "casa-country",
+      "type_id": 1
+    },
+    {
+      "id": 3,
+      "name": "Monoambiente",
+      "slug": "monoambiente",
+      "type_id": 2
+    }
+  ]
+}
+```
+
+```json Filtered by Type
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Casa en barrio cerrado",
+      "slug": "casa-barrio-cerrado",
+      "type_id": 1
+    },
+    {
+      "id": 2,
+      "name": "Casa en country",
+      "slug": "casa-country",
+      "type_id": 1
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Available Property Types
+
+The system includes the following property types:
+
+- **Casa** (House)
+- **Departamento** (Apartment)
+- **PH** (Townhouse)
+- **Terreno** (Land)
+- **Local comercial** (Commercial Space)
+- **Galpón** (Warehouse)
+- **Oficina comercial** (Commercial Office)
+- **Campo** (Rural Property)
+- **Depósito** (Storage)
+- **Bodega** (Cellar)
+- **Consultorio** (Medical Office)
+- **Fondo de comercio** (Business)
+- **Hotel** (Hotel)
+- **Cochera** (Parking Space)

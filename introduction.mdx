@@ -1,0 +1,212 @@
+---
+title: Introduction
+description: Welcome to the Inmobiliaria API - a comprehensive REST API for real estate property management
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.svg"
+  alt="Inmobiliaria API Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.svg"
+  alt="Inmobiliaria API Hero Dark"
+/>
+
+## Welcome to Inmobiliaria API
+
+The Inmobiliaria API is a modern, production-ready REST API designed for real estate property management. Built with Express.js, PostgreSQL, and Better Auth, it provides a complete solution for managing property listings, user authentication, image uploads, and advanced search capabilities.
+
+## Quick navigation
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get up and running with your first API call in minutes
+  </Card>
+  <Card
+    title="Installation"
+    icon="download"
+    href="/installation"
+  >
+    Set up the development environment locally
+  </Card>
+  <Card
+    title="Authentication"
+    icon="lock"
+    href="/auth/overview"
+  >
+    Learn about authentication and authorization
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api/overview"
+  >
+    Explore all available endpoints and operations
+  </Card>
+</CardGroup>
+
+## Core features
+
+The Inmobiliaria API provides a comprehensive set of features for building modern real estate applications:
+
+### Property management
+
+- **CRUD operations**: Create, read, update, and delete property listings
+- **Rich metadata**: Property types, subtypes, operation types (sale/rent), conditions, and statuses
+- **Location data**: Full address support with coordinates for mapping integration
+- **Image handling**: Multi-image uploads with automatic optimization and WebP conversion
+- **Advanced search**: Filter by price range, property type, location, bedrooms, bathrooms, and more
+- **SEO-friendly URLs**: Automatic slug generation for property listings
+
+### Authentication & authorization
+
+- **Better Auth integration**: Email/password authentication with email verification
+- **Social login**: Google OAuth support
+- **Session management**: Secure session handling with cookies
+- **Role-based access**: Admin and user roles with different permissions
+- **Password reset**: Email-based password recovery flow
+
+### File storage
+
+- **Flexible storage**: Local filesystem or AWS S3-compatible storage (S3, R2, B2)
+- **Image optimization**: Automatic generation of thumbnail and large variants
+- **WebP conversion**: Modern image format for optimal performance
+- **Image rotation**: Support for rotating images before storage
+
+### Data management
+
+- **PostgreSQL database**: Robust relational database with Drizzle ORM
+- **Type-safe queries**: Full TypeScript support throughout the stack
+- **Database migrations**: Version-controlled schema changes with Drizzle Kit
+- **Seed data**: Sample data for development and testing
+
+## Architecture overview
+
+The API is built with a modern Node.js stack:
+
+```
+┌─────────────────────────────────────────────┐
+│           Client Applications               │
+│   (Web, Mobile, Third-party integrations)   │
+└─────────────────┬───────────────────────────┘
+                  │
+                  │ HTTPS/REST
+                  │
+┌─────────────────▼───────────────────────────┐
+│          Express.js API Server              │
+│  ┌──────────────────────────────────────┐   │
+│  │  Authentication (Better Auth)        │   │
+│  ├──────────────────────────────────────┤   │
+│  │  Routes & Controllers                │   │
+│  ├──────────────────────────────────────┤   │
+│  │  Middleware (Auth, Uploads, Errors)  │   │
+│  ├──────────────────────────────────────┤   │
+│  │  Business Logic & Services           │   │
+│  └──────────────────────────────────────┘   │
+└─────────┬───────────────────────┬───────────┘
+          │                       │
+          │                       │
+┌─────────▼──────────┐   ┌────────▼──────────┐
+│  PostgreSQL DB     │   │  File Storage     │
+│  (Drizzle ORM)     │   │  (Local or S3)    │
+└────────────────────┘   └───────────────────┘
+```
+
+### Technology stack
+
+- **Runtime**: Node.js v24.13.1
+- **Framework**: Express.js v4.21.2
+- **Database**: PostgreSQL with Drizzle ORM v0.36.4
+- **Authentication**: Better Auth v1.3.4
+- **Image processing**: Sharp v0.33.4
+- **File uploads**: Multer v1.4.5
+- **Validation**: Zod v3.25.1
+- **Email**: Resend v6.0.1 with React Email
+- **Storage**: AWS SDK v3 for S3-compatible storage
+
+## API design principles
+
+The API follows REST conventions and modern best practices:
+
+- **RESTful endpoints**: Resources are accessed via standard HTTP methods (GET, POST, PUT, DELETE)
+- **JSON responses**: All responses use JSON format with consistent structure
+- **Error handling**: Comprehensive error messages with appropriate HTTP status codes
+- **Pagination**: List endpoints support page-based pagination
+- **Filtering**: Advanced query parameters for searching and filtering
+- **Type safety**: Full TypeScript implementation for type safety
+- **Security**: CORS protection, secure cookies, SQL injection prevention
+
+<Note>
+The API uses a standardized response format: all successful responses include a `success: true` field and a `data` field containing the result. Error responses include `success: false` and a descriptive `message` field.
+</Note>
+
+## Response format
+
+All API responses follow a consistent structure:
+
+**Successful response:**
+```json
+{
+  "success": true,
+  "data": {
+    // Response data here
+  }
+}
+```
+
+**Error response:**
+```json
+{
+  "success": false,
+  "message": "Error description"
+}
+```
+
+**Paginated response:**
+```json
+{
+  "success": true,
+  "data": [
+    // Array of items
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 47,
+    "limit": 10
+  }
+}
+```
+
+## Getting help
+
+If you need assistance:
+
+- Check the [API Reference](/api/overview) for detailed endpoint documentation
+- Review the [Quickstart Guide](/quickstart) for common use cases
+- Explore the [Installation Guide](/installation) for setup troubleshooting
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Start building"
+    icon="code"
+    href="/quickstart"
+  >
+    Follow the quickstart guide to make your first API call
+  </Card>
+  <Card
+    title="Set up locally"
+    icon="laptop-code"
+    href="/installation"
+  >
+    Install and run the API server on your local machine
+  </Card>
+</CardGroup>

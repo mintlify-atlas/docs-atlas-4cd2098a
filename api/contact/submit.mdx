@@ -1,0 +1,194 @@
+---
+title: 'Submit Contact Request'
+api: 'POST /api/contact/appraisal'
+---
+
+## Overview
+
+Submit a property appraisal or contact request. This endpoint stores the request in the database and sends an email notification to the administration team via Resend.
+
+<Warning>
+  This endpoint requires authentication. Users must be logged in to submit contact requests.
+</Warning>
+
+## Authentication
+
+Requires an authenticated user via the `requireAuth` middleware. Include a valid session cookie or authentication token.
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Full name of the person making the request (minimum 1 character)
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Email address (must be a valid email format)
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Phone number (minimum 5 characters)
+</ParamField>
+
+<ParamField body="availableHours" type="string" required>
+  Preferred hours for contact (minimum 1 character)
+</ParamField>
+
+<ParamField body="operationType" type="string">
+  Type of operation: `"venta"` (sale), `"alquiler"` (rent), or `"valuacion"` (appraisal)
+</ParamField>
+
+<ParamField body="propertyType" type="string">
+  Type of property (e.g., "Casa", "Departamento")
+</ParamField>
+
+<ParamField body="location" type="string">
+  Property location or area of interest
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  Detailed description of the request (minimum 1 character)
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was submitted successfully
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  Response data
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="number">
+      ID of the created contact request
+    </ResponseField>
+    
+    <ResponseField name="message" type="string">
+      Success message
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Success Response (201)
+{
+  "success": true,
+  "data": {
+    "id": 42,
+    "message": "Contact request submitted successfully"
+  }
+}
+```
+
+```json Validation Error (400)
+{
+  "success": false,
+  "data": null,
+  "error": "Validation error",
+  "details": [
+    {
+      "code": "too_small",
+      "minimum": 1,
+      "type": "string",
+      "inclusive": true,
+      "exact": false,
+      "message": "String must contain at least 1 character(s)",
+      "path": ["name"]
+    }
+  ]
+}
+```
+
+```json Server Error (500)
+{
+  "success": false,
+  "data": null,
+  "error": "Internal server error"
+}
+```
+</ResponseExample>
+
+## Request Example
+
+```bash cURL
+curl -X POST https://api.example.com/api/contact/appraisal \
+  -H "Content-Type: application/json" \
+  -H "Cookie: session=..." \
+  -d '{
+    "name": "María González",
+    "email": "maria@example.com",
+    "phone": "+54 11 1234-5678",
+    "availableHours": "Lunes a Viernes 14-18hs",
+    "operationType": "venta",
+    "propertyType": "Casa",
+    "location": "Palermo, CABA",
+    "description": "Necesito tasar mi casa de 3 ambientes en Palermo para ponerla en venta."
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('/api/contact/appraisal', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  credentials: 'include',
+  body: JSON.stringify({
+    name: 'María González',
+    email: 'maria@example.com',
+    phone: '+54 11 1234-5678',
+    availableHours: 'Lunes a Viernes 14-18hs',
+    operationType: 'venta',
+    propertyType: 'Casa',
+    location: 'Palermo, CABA',
+    description: 'Necesito tasar mi casa de 3 ambientes en Palermo para ponerla en venta.'
+  })
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://api.example.com/api/contact/appraisal',
+    json={
+        'name': 'María González',
+        'email': 'maria@example.com',
+        'phone': '+54 11 1234-5678',
+        'availableHours': 'Lunes a Viernes 14-18hs',
+        'operationType': 'venta',
+        'propertyType': 'Casa',
+        'location': 'Palermo, CABA',
+        'description': 'Necesito tasar mi casa de 3 ambientes en Palermo para ponerla en venta.'
+    },
+    cookies={'session': '...'}
+)
+
+data = response.json()
+```
+
+## Validation Rules
+
+The endpoint uses Zod schema validation:
+
+- `name`: Required, minimum 1 character
+- `email`: Required, must be valid email format
+- `phone`: Required, minimum 5 characters
+- `availableHours`: Required, minimum 1 character
+- `operationType`: Optional, must be one of: `"venta"`, `"alquiler"`, `"valuacion"`
+- `propertyType`: Optional string
+- `location`: Optional string
+- `description`: Required, minimum 1 character
+
+## Implementation Details
+
+- Stores request in the `contactRequests` database table
+- Associates request with authenticated user's ID
+- Sends email notification via the email service (using Resend)
+- Uses database transaction for data integrity
+- Returns 201 status code on successful creation
+- Returns 400 for validation errors with detailed error information
+- Returns 500 for server errors
+- Optional fields default to "N/A" if not provided

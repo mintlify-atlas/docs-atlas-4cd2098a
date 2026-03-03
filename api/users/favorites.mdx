@@ -1,0 +1,317 @@
+---
+title: "User Favorites"
+description: "Manage user's favorite properties"
+---
+
+These endpoints allow users to manage their favorite properties. All endpoints require authentication.
+
+## Get User Favorites
+
+<api method="GET" path="/api/users/favorites" />
+
+Retrieve all properties that the authenticated user has marked as favorites.
+
+### Authentication
+
+Requires authentication token.
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of favorite property objects. Each property object matches the structure returned by the properties list endpoint.
+  
+  <Expandable title="property object">
+    <ResponseField name="id" type="string" required>
+      Property unique identifier
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string" required>
+      URL-friendly property identifier
+    </ResponseField>
+    
+    <ResponseField name="title" type="string" required>
+      Property title
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Property description
+    </ResponseField>
+    
+    <ResponseField name="price" type="number" required>
+      Property price
+    </ResponseField>
+    
+    <ResponseField name="currency" type="string" required>
+      Currency code (e.g., "USD", "ARS")
+    </ResponseField>
+    
+    <ResponseField name="propertyType" type="string" required>
+      Type of property (e.g., "casa", "departamento")
+    </ResponseField>
+    
+    <ResponseField name="propertySubtype" type="string">
+      Property subtype slug
+    </ResponseField>
+    
+    <ResponseField name="listingType" type="string" required>
+      Operation type (e.g., "venta", "alquiler")
+    </ResponseField>
+    
+    <ResponseField name="address" type="object">
+      Property address information
+    </ResponseField>
+    
+    <ResponseField name="location" type="object">
+      Detailed location data with coordinates
+    </ResponseField>
+    
+    <ResponseField name="bedrooms" type="number">
+      Number of bedrooms
+    </ResponseField>
+    
+    <ResponseField name="bathrooms" type="number">
+      Number of bathrooms
+    </ResponseField>
+    
+    <ResponseField name="surfaceCoveredM2" type="number">
+      Covered surface area in square meters
+    </ResponseField>
+    
+    <ResponseField name="images" type="array">
+      Array of image URLs
+    </ResponseField>
+    
+    <ResponseField name="features" type="array">
+      Array of property features
+    </ResponseField>
+    
+    <ResponseField name="status" type="string" required>
+      Property status (e.g., "activo")
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string" required>
+      ISO 8601 timestamp
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string" required>
+      ISO 8601 timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "message": "Failed to fetch favorites"
+}
+```
+
+### Example Request
+
+```bash cURL
+curl -X GET https://api.inmobiliaria.com/api/users/favorites \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "123",
+      "slug": "beautiful-apartment-palermo-abc123",
+      "title": "Beautiful Apartment in Palermo",
+      "description": "Spacious 2-bedroom apartment",
+      "price": 250000,
+      "currency": "USD",
+      "propertyType": "departamento",
+      "listingType": "venta",
+      "bedrooms": 2,
+      "bathrooms": 2,
+      "surfaceCoveredM2": 85,
+      "images": ["https://example.com/image1.jpg"],
+      "features": ["Balcony", "Garage"],
+      "status": "activo",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Add Property to Favorites
+
+<api method="POST" path="/api/properties/:id/favorite" />
+
+Add a property to the authenticated user's favorites list.
+
+### Authentication
+
+Requires authentication token.
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the property to add to favorites
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the property was added successfully
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Success or error message
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="400 Bad Request - Invalid ID">
+  The property ID is not a valid integer
+  
+  ```json
+  {
+    "success": false,
+    "message": "Invalid property ID"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="400 Bad Request - Already Favorited">
+  The property is already in the user's favorites
+  
+  ```json
+  {
+    "success": false,
+    "message": "Property already in favorites"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="404 Not Found">
+  The property does not exist
+  
+  ```json
+  {
+    "success": false,
+    "message": "Property not found"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error while adding to favorites
+  
+  ```json
+  {
+    "success": false,
+    "message": "Failed to add to favorites"
+  }
+  ```
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl -X POST https://api.inmobiliaria.com/api/properties/123/favorite \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Property added to favorites"
+}
+```
+
+---
+
+## Remove Property from Favorites
+
+<api method="DELETE" path="/api/properties/:id/favorite" />
+
+Remove a property from the authenticated user's favorites list.
+
+### Authentication
+
+Requires authentication token.
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the property to remove from favorites
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the property was removed successfully
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Success or error message
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="400 Bad Request">
+  The property ID is not a valid integer
+  
+  ```json
+  {
+    "success": false,
+    "message": "Invalid property ID"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error while removing from favorites
+  
+  ```json
+  {
+    "success": false,
+    "message": "Failed to remove from favorites"
+  }
+  ```
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl -X DELETE https://api.inmobiliaria.com/api/properties/123/favorite \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Property removed from favorites"
+}
+```
+
+## Notes
+
+- All favorites endpoints require authentication
+- The GET favorites endpoint returns full property details matching the properties list structure
+- Adding/removing favorites uses the property ID (not slug)
+- Removing a favorite that doesn't exist will still return success
+- Property slugs are auto-generated if missing when fetching favorites

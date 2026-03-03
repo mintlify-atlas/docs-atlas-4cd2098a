@@ -1,0 +1,100 @@
+---
+title: "Update User Profile"
+api: "PUT /api/users/profile"
+description: "Update the authenticated user's profile information"
+---
+
+## Authentication
+
+This endpoint requires authentication. Include a valid authentication token in your request.
+
+## Request Body
+
+All fields are optional. Only include the fields you want to update.
+
+<ParamField body="name" type="string">
+  User's display name. Must be at least 1 character long.
+</ParamField>
+
+<ParamField body="email" type="string">
+  User's email address. Must be a valid email format. Cannot be an email already in use by another user.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the profile was updated successfully
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Success or error message
+</ResponseField>
+
+## Error Responses
+
+<ResponseField name="400 Bad Request - Email In Use">
+  The provided email is already being used by another user
+  
+  ```json
+  {
+    "success": false,
+    "message": "Email already in use"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="400 Bad Request - Validation Error">
+  Request body validation failed
+  
+  ```json
+  {
+    "success": false,
+    "message": "Validation error",
+    "errors": [
+      {
+        "path": ["email"],
+        "message": "Invalid email"
+      }
+    ]
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error">
+  Server error while updating profile
+  
+  ```json
+  {
+    "success": false,
+    "message": "Failed to update profile"
+  }
+  ```
+</ResponseField>
+
+## Example Request
+
+```bash cURL
+curl -X PUT https://api.inmobiliaria.com/api/users/profile \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully"
+}
+```
+
+## Validation Rules
+
+- **name**: Optional string, minimum 1 character when provided
+- **email**: Optional string, must be valid email format when provided
+- Email uniqueness is checked across all users
+- At least one field should be provided for the update to be meaningful

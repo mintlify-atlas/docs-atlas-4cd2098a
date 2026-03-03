@@ -1,0 +1,169 @@
+---
+title: 'API Overview'
+description: 'Introduction to the Inmobiliaria API, base URL configuration, and available resources'
+---
+
+## Introduction
+
+The Inmobiliaria API is a RESTful API that provides programmatic access to property listings, user management, metadata, and administrative functions. All API responses are returned in JSON format.
+
+## Base URL
+
+The API server runs on the following base URL:
+
+```
+http://localhost:3000  # Development
+https://your-domain.com  # Production
+```
+
+The port is configurable via the `PORT` environment variable (defaults to `3000`).
+
+## CORS Configuration
+
+The API is configured with CORS to allow cross-origin requests from the frontend application:
+
+```javascript
+cors({
+  origin: [process.env.FRONTEND_URL],
+  credentials: true  // Required for session cookies
+})
+```
+
+Cookies are enabled to support session-based authentication. Make sure to include credentials in your API requests.
+
+## Available Resources
+
+The API is organized into the following resource categories:
+
+### Properties
+`/api/properties`
+
+Manage real estate property listings including creation, updates, search, and retrieval.
+
+### Users
+`/api/users`
+
+User profile management and user-related operations.
+
+### Metadata
+`/api/metadata`
+
+Access metadata such as property types, amenities, and other reference data.
+
+### Admin
+`/api/admin`
+
+Administrative functions including statistics and system management (requires admin role).
+
+### Contact
+`/api/contact`
+
+Handle contact form submissions and inquiries.
+
+### Authentication
+`/api/auth/*`
+
+Handled by Better Auth for user authentication, session management, and OAuth providers.
+
+## Health Check Endpoints
+
+The API provides health check endpoints for monitoring:
+
+### Root Health Check
+
+```bash
+GET /
+```
+
+Returns server status and database health:
+
+```json
+{
+  "status": "ok",
+  "message": "Inmobiliaria API Server",
+  "timestamp": "2026-03-03T10:30:00.000Z",
+  "database": {
+    "status": "healthy"
+  }
+}
+```
+
+### Database Health Check
+
+```bash
+GET /health
+```
+
+Returns detailed database health status with appropriate HTTP status codes:
+
+- `200` - Database is healthy
+- `503` - Database is unavailable
+
+```json
+{
+  "status": "ok",
+  "database": {
+    "status": "healthy"
+  },
+  "timestamp": "2026-03-03T10:30:00.000Z"
+}
+```
+
+## Response Format
+
+All API responses follow a consistent JSON structure:
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    // Response data
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "message": "Error description",
+  "code": "ERROR_CODE"
+}
+```
+
+See the [Errors](/api/errors) page for detailed error handling information.
+
+## File Uploads
+
+The API supports file uploads with a maximum size limit:
+
+- **Max file size**: Configurable via `MAX_FILE_SIZE_BYTES`
+- **JSON body limit**: 10MB
+- **Storage options**: Local filesystem or S3
+
+When using local storage, uploaded files are served from:
+
+```
+/uploads  # Default public upload path
+```
+
+Files are cached for 7 days with appropriate cache headers.
+
+## Session Management
+
+The API uses Better Auth for session management. Session data can be retrieved from:
+
+```bash
+GET /api/session
+```
+
+Returns the current user session including user details and role information.
+
+## Next Steps
+
+- Learn about [Authentication](/api/authentication)
+- Understand [Error Handling](/api/errors)
+- Explore specific resource endpoints in the API reference

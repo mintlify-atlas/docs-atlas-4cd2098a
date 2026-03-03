@@ -1,0 +1,94 @@
+---
+title: 'Get Dashboard Statistics'
+api: 'GET /api/admin/stats'
+---
+
+## Overview
+
+Retrieves comprehensive dashboard statistics for administrators. This endpoint provides key metrics about properties and users in the system.
+
+<Warning>
+  This endpoint requires admin role authentication via the `requireAdmin` middleware.
+</Warning>
+
+## Authentication
+
+Requires an authenticated user with **admin role**. Include a valid session cookie or authentication token.
+
+## Response
+
+Returns aggregated statistics calculated in parallel for optimal performance.
+
+<ResponseField name="success" type="boolean" required>
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  Statistics object containing the following metrics:
+  
+  <Expandable title="properties">
+    <ResponseField name="totalProperties" type="number">
+      Total count of all properties in the system
+    </ResponseField>
+    
+    <ResponseField name="activeProperties" type="number">
+      Count of properties with status ID 1 (active)
+    </ResponseField>
+    
+    <ResponseField name="salesProperties" type="number">
+      Count of active properties with operation type ID 1 (venta/sale)
+    </ResponseField>
+    
+    <ResponseField name="rentalProperties" type="number">
+      Count of active properties with operation type ID 2 (alquiler/rent)
+    </ResponseField>
+    
+    <ResponseField name="recentProperties" type="number">
+      Count of recently added active properties
+    </ResponseField>
+    
+    <ResponseField name="totalUsers" type="number">
+      Total count of registered users
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Success Response
+{
+  "success": true,
+  "data": {
+    "totalProperties": 150,
+    "activeProperties": 120,
+    "salesProperties": 75,
+    "rentalProperties": 45,
+    "recentProperties": 120,
+    "totalUsers": 50
+  }
+}
+```
+
+```json Error Response
+{
+  "success": false,
+  "message": "Failed to fetch statistics"
+}
+```
+</ResponseExample>
+
+## Implementation Details
+
+- All statistics are fetched in parallel using `Promise.all()` for optimal performance
+- Active properties are filtered by `statusId = 1`
+- Operation types: 1 = venta (sale), 2 = alquiler (rent)
+- Returns 500 status code on server errors
+
+## Error Responses
+
+<ResponseField name="success" type="boolean">
+  Will be `false` when an error occurs
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Error description (e.g., "Failed to fetch statistics")
+</ResponseField>

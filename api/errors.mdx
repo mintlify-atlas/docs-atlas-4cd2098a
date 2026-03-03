@@ -1,0 +1,399 @@
+---
+title: 'Error Handling'
+description: 'Error response format, HTTP status codes, and common error scenarios'
+---
+
+## Error Response Format
+
+All API errors return a consistent JSON structure with the following fields:
+
+<ResponseField name="success" type="boolean" required>
+  Always `false` for error responses
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable error message describing what went wrong
+</ResponseField>
+
+<ResponseField name="code" type="string" required>
+  Machine-readable error code for programmatic handling
+</ResponseField>
+
+<ResponseField name="stack" type="string">
+  Stack trace - only included in development mode
+</ResponseField>
+
+### Example Error Response
+
+```json
+{
+  "success": false,
+  "message": "Authentication required",
+  "code": "UNAUTHORIZED"
+}
+```
+
+### Development Mode
+
+In development, errors include a stack trace for debugging:
+
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "code": "VALIDATION_ERROR",
+  "stack": "Error: Validation Error\n    at validateProperty (/src/routes/properties.ts:123)\n    ..."
+}
+```
+
+## HTTP Status Codes
+
+The API uses standard HTTP status codes to indicate the success or failure of requests:
+
+### Success Codes
+
+| Code | Description |
+|------|-------------|
+| 200 | OK - Request succeeded |
+| 201 | Created - Resource created successfully |
+
+### Client Error Codes
+
+| Code | Description | Error Code |
+|------|-------------|------------|
+| 400 | Bad Request - Invalid input or validation error | `VALIDATION_ERROR` |
+| 401 | Unauthorized - Authentication required | `UNAUTHORIZED` |
+| 403 | Forbidden - Insufficient permissions | `FORBIDDEN` |
+| 404 | Not Found - Resource or route not found | `NOT_FOUND`, `ROUTE_NOT_FOUND` |
+
+### Server Error Codes
+
+| Code | Description | Error Code |
+|------|-------------|------------|
+| 500 | Internal Server Error - Unexpected server error | `INTERNAL_ERROR` |
+| 503 | Service Unavailable - Database or service is down | - |
+
+## Error Types
+
+The error handler recognizes and processes the following error types:
+
+### ValidationError
+
+Triggered when request data fails validation.
+
+**Status Code:** `400`
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "code": "VALIDATION_ERROR"
+}
+```
+
+**Common causes:**
+- Missing required fields
+- Invalid data types
+- Values outside acceptable ranges
+- Invalid format (e.g., email, phone)
+
+### UnauthorizedError
+
+Triggered when authentication is required but not provided.
+
+**Status Code:** `401`
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Unauthorized",
+  "code": "UNAUTHORIZED"
+}
+```
+
+**Common causes:**
+- No session cookie provided
+- Session expired
+- Invalid session token
+
+### ForbiddenError
+
+Triggered when the authenticated user lacks necessary permissions.
+
+**Status Code:** `403`
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Forbidden",
+  "code": "FORBIDDEN"
+}
+```
+
+**Common causes:**
+- User role is not "admin" for admin endpoints
+- Attempting to modify another user's resources
+- Accessing restricted functionality
+
+### NotFoundError
+
+Triggered when a requested resource doesn't exist.
+
+**Status Code:** `404`
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Not Found",
+  "code": "NOT_FOUND"
+}
+```
+
+**Common causes:**
+- Invalid resource ID
+- Resource has been deleted
+- User doesn't have access to the resource
+
+### Route Not Found
+
+Special case when the requested API endpoint doesn't exist.
+
+**Status Code:** `404`
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Route GET /api/invalid not found",
+  "code": "ROUTE_NOT_FOUND"
+}
+```
+
+From `src/middleware/errorHandler.ts:57-63`:
+
+```typescript
+export const notFoundHandler = (req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.path} not found`,
+    code: "ROUTE_NOT_FOUND",
+  });
+};
+```
+
+## Error Handler Middleware
+
+The global error handler processes all errors thrown in the application.
+
+From `src/middleware/errorHandler.ts:9-54`:
+
+```typescript
+export const errorHandler = (
+  error: ApiError,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  console.error("Error:", error);
+
+  // Default error
+  let statusCode = error.statusCode || 500;
+  let message = error.message || "Internal Server Error";
+  let code = error.code || "INTERNAL_ERROR";
+
+  // Handle specific error types
+  if (error.name === "ValidationError") {
+    statusCode = 400;
+    message = "Validation Error";
+    code = "VALIDATION_ERROR";
+  } else if (error.name === "UnauthorizedError") {
+    statusCode = 401;
+    message = "Unauthorized";
+    code = "UNAUTHORIZED";
+  } else if (error.name === "ForbiddenError") {
+    statusCode = 403;
+    message = "Forbidden";
+    code = "FORBIDDEN";
+  } else if (error.name === "NotFoundError") {
+    statusCode = 404;
+    message = "Not Found";
+    code = "NOT_FOUND";
+  }
+
+  // Don't expose internal errors in production
+  if (process.env.NODE_ENV === "production" && statusCode === 500) {
+    message = "Internal Server Error";
+  }
+
+  res.status(statusCode).json({
+    success: false,
+    message,
+    code,
+    ...(process.env.NODE_ENV === "development" && {
+      stack: error.stack,
+    }),
+  });
+};
+```
+
+## Common Error Scenarios
+
+### Missing Authentication
+
+**Request:**
+```bash
+GET /api/users/profile
+# No session cookie
+```
+
+**Response:** `401 Unauthorized`
+```json
+{
+  "success": false,
+  "message": "Authentication required",
+  "code": "UNAUTHORIZED"
+}
+```
+
+### Insufficient Permissions
+
+**Request:**
+```bash
+GET /api/admin/stats
+# Authenticated as regular user
+```
+
+**Response:** `403 Forbidden`
+```json
+{
+  "success": false,
+  "message": "Admin access required",
+  "code": "FORBIDDEN"
+}
+```
+
+### Invalid Route
+
+**Request:**
+```bash
+GET /api/nonexistent
+```
+
+**Response:** `404 Not Found`
+```json
+{
+  "success": false,
+  "message": "Route GET /api/nonexistent not found",
+  "code": "ROUTE_NOT_FOUND"
+}
+```
+
+### Database Connection Error
+
+**Request:**
+```bash
+GET /health
+# Database is down
+```
+
+**Response:** `503 Service Unavailable`
+```json
+{
+  "status": "error",
+  "database": {
+    "status": "unhealthy"
+  },
+  "timestamp": "2026-03-03T10:30:00.000Z"
+}
+```
+
+### Internal Server Error
+
+**Development Response:**
+```json
+{
+  "success": false,
+  "message": "Cannot read property 'id' of undefined",
+  "code": "INTERNAL_ERROR",
+  "stack": "TypeError: Cannot read property 'id' of undefined\n    at ..."
+}
+```
+
+**Production Response:**
+```json
+{
+  "success": false,
+  "message": "Internal Server Error",
+  "code": "INTERNAL_ERROR"
+}
+```
+
+Note that in production, internal error details are hidden to prevent information leakage.
+
+## Error Handling Best Practices
+
+### Client-Side Error Handling
+
+```javascript
+try {
+  const response = await fetch('/api/properties', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(propertyData)
+  });
+  
+  const data = await response.json();
+  
+  if (!data.success) {
+    // Handle specific error codes
+    switch (data.code) {
+      case 'UNAUTHORIZED':
+        // Redirect to login
+        break;
+      case 'VALIDATION_ERROR':
+        // Show validation errors
+        break;
+      case 'FORBIDDEN':
+        // Show permission error
+        break;
+      default:
+        // Show generic error
+        console.error(data.message);
+    }
+  }
+} catch (error) {
+  // Network error or JSON parse error
+  console.error('Request failed:', error);
+}
+```
+
+### Checking Error Codes
+
+Always check the `code` field for programmatic error handling rather than parsing the `message` string:
+
+```javascript
+if (errorData.code === 'UNAUTHORIZED') {
+  // Handle authentication error
+} else if (errorData.code === 'VALIDATION_ERROR') {
+  // Handle validation error
+}
+```
+
+## Production vs Development
+
+The API behaves differently based on the `NODE_ENV` environment variable:
+
+**Development Mode:**
+- Full error messages exposed
+- Stack traces included
+- Detailed logging to console
+
+**Production Mode:**
+- Generic "Internal Server Error" message for 500 errors
+- No stack traces in responses
+- Error details logged server-side only

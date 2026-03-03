@@ -1,0 +1,318 @@
+---
+title: "Get Property"
+api: "GET /api/properties/:id"
+description: "Retrieve a single property by ID"
+---
+
+## Overview
+
+Retrieve detailed information about a specific property by its ID. View count is automatically incremented for non-owner views.
+
+## Authentication
+
+<ParamField header="Authorization" type="string">
+  Optional. Bearer token for authenticated requests. Owners and admins can view paused properties.
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The property ID.
+</ParamField>
+
+## Response
+
+Returns the same property object structure as the list endpoint, with all fields populated.
+
+<ResponseField name="success" type="boolean">
+  Indicates if the request was successful.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Property details object.
+
+  <ResponseField name="id" type="string">
+    Property ID.
+  </ResponseField>
+
+  <ResponseField name="slug" type="string">
+    SEO-friendly URL slug.
+  </ResponseField>
+
+  <ResponseField name="title" type="string">
+    Property title.
+  </ResponseField>
+
+  <ResponseField name="description" type="string">
+    Property description.
+  </ResponseField>
+
+  <ResponseField name="price" type="number">
+    Property price.
+  </ResponseField>
+
+  <ResponseField name="originalPrice" type="number | undefined">
+    Original price before discount.
+  </ResponseField>
+
+  <ResponseField name="expenses" type="number | undefined">
+    Monthly expenses.
+  </ResponseField>
+
+  <ResponseField name="currency" type="string">
+    Currency code.
+  </ResponseField>
+
+  <ResponseField name="currency_id" type="number">
+    Currency ID.
+  </ResponseField>
+
+  <ResponseField name="propertyType" type="string">
+    Property type slug.
+  </ResponseField>
+
+  <ResponseField name="property_type_id" type="number">
+    Property type ID.
+  </ResponseField>
+
+  <ResponseField name="propertySubtype" type="string">
+    Property subtype slug.
+  </ResponseField>
+
+  <ResponseField name="property_subtype_id" type="number">
+    Property subtype ID.
+  </ResponseField>
+
+  <ResponseField name="listingType" type="string">
+    Operation type slug.
+  </ResponseField>
+
+  <ResponseField name="operation_type_id" type="number">
+    Operation type ID.
+  </ResponseField>
+
+  <ResponseField name="status" type="string">
+    Property status slug.
+  </ResponseField>
+
+  <ResponseField name="surfaceCoveredM2" type="number | undefined">
+    Covered surface in m².
+  </ResponseField>
+
+  <ResponseField name="surfaceUncoveredM2" type="number | undefined">
+    Uncovered surface in m².
+  </ResponseField>
+
+  <ResponseField name="lotSize" type="number | undefined">
+    Lot size in m².
+  </ResponseField>
+
+  <ResponseField name="rooms" type="number | undefined">
+    Number of rooms.
+  </ResponseField>
+
+  <ResponseField name="bedrooms" type="number | undefined">
+    Number of bedrooms.
+  </ResponseField>
+
+  <ResponseField name="bathrooms" type="number | undefined">
+    Number of bathrooms.
+  </ResponseField>
+
+  <ResponseField name="yearBuilt" type="number | undefined">
+    Year built.
+  </ResponseField>
+
+  <ResponseField name="floor" type="number | undefined">
+    Floor number.
+  </ResponseField>
+
+  <ResponseField name="condition" type="string">
+    Property condition.
+  </ResponseField>
+
+  <ResponseField name="has_balcony" type="boolean">
+    Has balcony.
+  </ResponseField>
+
+  <ResponseField name="has_terrace" type="boolean">
+    Has terrace.
+  </ResponseField>
+
+  <ResponseField name="has_laundry" type="boolean">
+    Has laundry.
+  </ResponseField>
+
+  <ResponseField name="has_garden" type="boolean">
+    Has garden.
+  </ResponseField>
+
+  <ResponseField name="pets_allowed" type="boolean">
+    Pets allowed.
+  </ResponseField>
+
+  <ResponseField name="garage_spaces" type="number">
+    Garage spaces.
+  </ResponseField>
+
+  <ResponseField name="youtube_video_url" type="string | null">
+    YouTube video URL.
+  </ResponseField>
+
+  <ResponseField name="oportunidad" type="boolean">
+    Opportunity listing.
+  </ResponseField>
+
+  <ResponseField name="credito_hipotecario" type="boolean">
+    Mortgage credit available.
+  </ResponseField>
+
+  <ResponseField name="apto_profesional" type="boolean">
+    Suitable for professional use.
+  </ResponseField>
+
+  <ResponseField name="acepta_permuta" type="boolean">
+    Accepts property exchange.
+  </ResponseField>
+
+  <ResponseField name="amoblado" type="boolean">
+    Furnished.
+  </ResponseField>
+
+  <ResponseField name="duenio_directo" type="boolean">
+    Direct from owner.
+  </ResponseField>
+
+  <ResponseField name="features" type="string[]">
+    Unified feature labels.
+  </ResponseField>
+
+  <ResponseField name="images" type="string[]">
+    Image URLs.
+  </ResponseField>
+
+  <ResponseField name="imagesMeta" type="array">
+    Image metadata with IDs and order.
+  </ResponseField>
+
+  <ResponseField name="location" type="object | undefined">
+    Full location object with coordinates.
+  </ResponseField>
+
+  <ResponseField name="latitude" type="number | undefined">
+    Latitude coordinate.
+  </ResponseField>
+
+  <ResponseField name="longitude" type="number | undefined">
+    Longitude coordinate.
+  </ResponseField>
+
+  <ResponseField name="contactPhone" type="string">
+    Contact phone.
+  </ResponseField>
+
+  <ResponseField name="contactEmail" type="string">
+    Contact email.
+  </ResponseField>
+
+  <ResponseField name="viewsCount" type="number">
+    Total view count.
+  </ResponseField>
+
+  <ResponseField name="createdAt" type="string">
+    ISO 8601 timestamp.
+  </ResponseField>
+
+  <ResponseField name="updatedAt" type="string">
+    ISO 8601 timestamp.
+  </ResponseField>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123",
+    "slug": "hermoso-departamento-palermo-4d",
+    "title": "Hermoso departamento en Palermo",
+    "description": "Excelente departamento de 2 ambientes...",
+    "price": 250000,
+    "currency": "USD",
+    "propertyType": "departamento",
+    "listingType": "venta",
+    "status": "activo",
+    "surfaceCoveredM2": 65,
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "has_balcony": true,
+    "garage_spaces": 1,
+    "features": ["Balcón", "Luminoso", "Cerca del subte"],
+    "images": ["https://..."],
+    "imagesMeta": [
+      {
+        "id": 456,
+        "url": "https://...",
+        "orderIndex": 0,
+        "isMain": true
+      }
+    ],
+    "location": {
+      "id": 789,
+      "street": "Av. Santa Fe",
+      "streetNumber": "3500",
+      "neighborhood": "Palermo",
+      "city": "Buenos Aires",
+      "province": "CABA",
+      "country": "Argentina",
+      "latitude": -34.5891,
+      "longitude": -58.4198,
+      "showExactAddress": false
+    },
+    "contactPhone": "+54 11 1234-5678",
+    "contactEmail": "contact@example.com",
+    "viewsCount": 153,
+    "createdAt": "2026-03-01T10:30:00Z",
+    "updatedAt": "2026-03-02T15:20:00Z"
+  }
+}
+```
+
+## Error Responses
+
+### Not Found (404)
+
+```json
+{
+  "success": false,
+  "message": "Property not found"
+}
+```
+
+Returned when:
+- Property ID doesn't exist
+- Property is paused and user is not the owner or admin
+
+### Invalid ID (400)
+
+```json
+{
+  "success": false,
+  "message": "Invalid property ID"
+}
+```
+
+## Notes
+
+- View count is incremented automatically for each GET request (except for property owners)
+- Paused properties are only visible to owners and admins
+- All price and surface fields are returned as numbers (converted from stored decimals)
+- Features include both boolean flags (converted to Spanish labels) and custom features

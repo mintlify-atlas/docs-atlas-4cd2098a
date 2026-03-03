@@ -1,0 +1,331 @@
+---
+title: "Create Property"
+api: "POST /api/properties"
+description: "Create a new property listing"
+---
+
+## Overview
+
+Create a new property listing with details, images, and location. This endpoint accepts multipart/form-data for image uploads.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. **Admin role required.**
+</ParamField>
+
+## Request Body
+
+This endpoint accepts `multipart/form-data` for image uploads. All fields except `title`, `propertyTypeId`, `operationTypeId`, and `price` are optional.
+
+### Required Fields
+
+<ParamField body="title" type="string" required>
+  Property title (max 255 characters).
+</ParamField>
+
+<ParamField body="propertyTypeId" type="number" required>
+  Property type ID (e.g., 1 for apartment, 2 for house).
+</ParamField>
+
+<ParamField body="operationTypeId" type="number" required>
+  Operation type ID (e.g., 1 for sale, 2 for rent).
+</ParamField>
+
+<ParamField body="price" type="number" required>
+  Property price (must be >= 0).
+</ParamField>
+
+### Optional Property Details
+
+<ParamField body="description" type="string">
+  Property description.
+</ParamField>
+
+<ParamField body="propertySubtypeId" type="number">
+  Property subtype ID.
+</ParamField>
+
+<ParamField body="statusId" type="number">
+  Status ID (defaults to 1 - active).
+</ParamField>
+
+<ParamField body="currencyId" type="number" default="1">
+  Currency ID.
+</ParamField>
+
+<ParamField body="originalPrice" type="number">
+  Original price before discount.
+</ParamField>
+
+<ParamField body="expenses" type="number">
+  Monthly expenses.
+</ParamField>
+
+### Surface & Size
+
+<ParamField body="surfaceCoveredM2" type="number">
+  Covered surface area in square meters.
+</ParamField>
+
+<ParamField body="surfaceUncoveredM2" type="number">
+  Uncovered surface area in square meters.
+</ParamField>
+
+<ParamField body="lotSize" type="number">
+  Lot size in square meters.
+</ParamField>
+
+### Room Information
+
+<ParamField body="rooms" type="number">
+  Total number of rooms.
+</ParamField>
+
+<ParamField body="bedrooms" type="number">
+  Number of bedrooms.
+</ParamField>
+
+<ParamField body="bathrooms" type="number">
+  Number of bathrooms.
+</ParamField>
+
+### Building Details
+
+<ParamField body="yearBuilt" type="number">
+  Year the property was built.
+</ParamField>
+
+<ParamField body="conditionId" type="number">
+  Condition ID.
+</ParamField>
+
+<ParamField body="condition" type="string">
+  Condition name (alternative to conditionId).
+</ParamField>
+
+<ParamField body="floor" type="number">
+  Floor number.
+</ParamField>
+
+### Features (Boolean)
+
+<ParamField body="hasBalcony" type="boolean | string">
+  Whether property has a balcony (accepts "true"/"false" strings for multipart forms).
+</ParamField>
+
+<ParamField body="hasTerrace" type="boolean | string">
+  Whether property has a terrace.
+</ParamField>
+
+<ParamField body="hasLaundry" type="boolean | string">
+  Whether property has a laundry room.
+</ParamField>
+
+<ParamField body="hasGarden" type="boolean | string">
+  Whether property has a garden.
+</ParamField>
+
+<ParamField body="petsAllowed" type="boolean | string">
+  Whether pets are allowed.
+</ParamField>
+
+<ParamField body="oportunidad" type="boolean | string">
+  Whether this is an opportunity listing.
+</ParamField>
+
+<ParamField body="creditoHipotecario" type="boolean | string">
+  Whether mortgage credit is available.
+</ParamField>
+
+<ParamField body="aptoProfesional" type="boolean | string">
+  Whether suitable for professional use.
+</ParamField>
+
+<ParamField body="aceptaPermuta" type="boolean | string">
+  Whether property exchange is accepted.
+</ParamField>
+
+<ParamField body="amoblado" type="boolean | string">
+  Whether property is furnished.
+</ParamField>
+
+<ParamField body="duenioDirecto" type="boolean | string">
+  Whether owner is selling directly.
+</ParamField>
+
+### Additional Features
+
+<ParamField body="garageSpaces" type="number" default="0">
+  Number of garage spaces.
+</ParamField>
+
+<ParamField body="youtubeVideoUrl" type="string">
+  YouTube video URL for property tour.
+</ParamField>
+
+<ParamField body="features" type="string[]">
+  Array of custom feature labels (JSON array as string in multipart).
+</ParamField>
+
+### Contact Information
+
+<ParamField body="contactPhone" type="string">
+  Contact phone number (max 50 characters).
+</ParamField>
+
+<ParamField body="contactEmail" type="string">
+  Contact email address (must be valid email).
+</ParamField>
+
+### Location
+
+<ParamField body="location" type="object">
+  Property location (JSON object as string in multipart).
+
+  <ParamField body="street" type="string" required>
+    Street name.
+  </ParamField>
+
+  <ParamField body="streetNumber" type="string">
+    Street number.
+  </ParamField>
+
+  <ParamField body="floorApartment" type="string">
+    Floor and apartment.
+  </ParamField>
+
+  <ParamField body="neighborhood" type="string">
+    Neighborhood.
+  </ParamField>
+
+  <ParamField body="city" type="string">
+    City (defaults to empty string).
+  </ParamField>
+
+  <ParamField body="province" type="string">
+    Province/state (defaults to empty string).
+  </ParamField>
+
+  <ParamField body="postalCode" type="string">
+    Postal code.
+  </ParamField>
+
+  <ParamField body="country" type="string" default="Argentina">
+    Country.
+  </ParamField>
+
+  <ParamField body="latitude" type="number">
+    Latitude (-90 to 90).
+  </ParamField>
+
+  <ParamField body="longitude" type="number">
+    Longitude (-180 to 180).
+  </ParamField>
+
+  <ParamField body="showExactAddress" type="boolean" default="true">
+    Whether to show exact address publicly.
+  </ParamField>
+</ParamField>
+
+### Images
+
+<ParamField body="images" type="File[]">
+  Array of image files (field name: "images"). Maximum 20 files. Automatically converted to WebP with variants.
+</ParamField>
+
+<ParamField body="newImageRotations" type="number[]">
+  Rotation steps for new images (0-3, where 1=90°, 2=180°, 3=270°). JSON array as string.
+</ParamField>
+
+<ParamField body="mainNewImageIndex" type="number">
+  Index of the main image among uploaded files (0-based). First image is main by default.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the property was created successfully.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Created property data.
+
+  <ResponseField name="id" type="string">
+    The created property ID.
+  </ResponseField>
+
+  <ResponseField name="message" type="string">
+    Success message.
+  </ResponseField>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST "https://api.example.com/api/properties" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F "title=Hermoso departamento en Palermo" \
+  -F "description=Excelente departamento de 2 ambientes con balcón" \
+  -F "propertyTypeId=1" \
+  -F "operationTypeId=1" \
+  -F "price=250000" \
+  -F "currencyId=2" \
+  -F "bedrooms=2" \
+  -F "bathrooms=1" \
+  -F "surfaceCoveredM2=65" \
+  -F "hasBalcony=true" \
+  -F 'location={"street":"Av. Santa Fe","streetNumber":"3500","neighborhood":"Palermo","city":"Buenos Aires","province":"CABA","country":"Argentina","showExactAddress":false}' \
+  -F 'features=["Luminoso","Cerca del subte"]' \
+  -F "images=@photo1.jpg" \
+  -F "images=@photo2.jpg"
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123",
+    "message": "Property created successfully"
+  }
+}
+```
+
+## Error Responses
+
+### Validation Error (400)
+
+```json
+{
+  "success": false,
+  "message": "Validation error",
+  "errors": [
+    {
+      "code": "too_small",
+      "minimum": 1,
+      "type": "string",
+      "message": "String must contain at least 1 character(s)",
+      "path": ["title"]
+    }
+  ]
+}
+```
+
+### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "message": "Unauthorized"
+}
+```
+
+## Notes
+
+- A unique SEO-friendly URL slug is automatically generated from title, city, and province
+- Images are automatically processed to create large and thumbnail WebP variants
+- Boolean features are converted to Spanish labels and stored in unified characteristics
+- Property is set to published immediately upon creation
+- User ID is automatically set from the authenticated admin user

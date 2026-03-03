@@ -1,80 +1,378 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Get started with the Inmobiliaria API and make your first request in minutes"
 ---
 
-## Get started in three steps
+## Get started
 
-Get your documentation site running locally and make your first customization.
+This guide will walk you through making your first API calls to the Inmobiliaria API. You'll learn how to check the server health, fetch property listings, and authenticate requests.
 
-### Step 1: Set up your local environment
+<Note>
+Before you begin, make sure you have the API server running. See the [Installation](/installation) guide if you need help setting up the development environment.
+</Note>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Quick health check
 
-### Step 2: Deploy your changes
+Start by verifying that the API server is running and healthy.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Steps>
+  <Step title="Check server status">
+    Make a simple GET request to the root endpoint:
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    <CodeGroup>
+      ```bash cURL
+      curl http://localhost:3000/
+      ```
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+      ```javascript JavaScript
+      fetch('http://localhost:3000/')
+        .then(res => res.json())
+        .then(data => console.log(data));
+      ```
 
-### Step 3: Go live
+      ```python Python
+      import requests
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+      response = requests.get('http://localhost:3000/')
+      print(response.json())
+      ```
+    </CodeGroup>
+
+    **Expected response:**
+
+    ```json
+    {
+      "status": "ok",
+      "message": "Inmobiliaria API Server",
+      "timestamp": "2026-03-03T10:30:00.000Z",
+      "database": {
+        "status": "healthy"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Verify database health">
+    Check the database connection status:
+
+    ```bash
+    curl http://localhost:3000/health
+    ```
+
+    A `200 OK` response indicates the database is healthy. A `503 Service Unavailable` means the database is down.
+  </Step>
+</Steps>
+
+## Fetch property listings
+
+Now let's retrieve some property data from the API.
+
+<Steps>
+  <Step title="Get all properties">
+    Fetch a paginated list of properties:
+
+    <CodeGroup>
+      ```bash cURL
+      curl http://localhost:3000/api/properties
+      ```
+
+      ```javascript JavaScript
+      const response = await fetch('http://localhost:3000/api/properties');
+      const data = await response.json();
+
+      console.log(`Found ${data.pagination.totalItems} properties`);
+      console.log(data.data[0]); // First property
+      ```
+
+      ```python Python
+      import requests
+
+      response = requests.get('http://localhost:3000/api/properties')
+      data = response.json()
+
+      print(f"Found {data['pagination']['totalItems']} properties")
+      ```
+    </CodeGroup>
+
+    **Response structure:**
+
+    ```json
+    {
+      "success": true,
+      "data": [
+        {
+          "id": "123",
+          "slug": "hermoso-departamento-palermo-4d",
+          "title": "Hermoso departamento en Palermo",
+          "price": 250000,
+          "currency": "USD",
+          "propertyType": "departamento",
+          "listingType": "venta",
+          "bedrooms": 2,
+          "bathrooms": 1,
+          "surfaceCoveredM2": 65,
+          "images": ["https://..."],
+          "location": {
+            "city": "Buenos Aires",
+            "province": "CABA",
+            "neighborhood": "Palermo"
+          }
+        }
+      ],
+      "pagination": {
+        "currentPage": 1,
+        "totalPages": 5,
+        "totalItems": 47,
+        "limit": 10
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Filter and search properties">
+    Use query parameters to find specific properties:
+
+    ```bash
+    curl "http://localhost:3000/api/properties?propertyType=departamento&listingType=venta&bedrooms=2&minPrice=100000&maxPrice=500000&location=Buenos%20Aires&page=1&limit=20"
+    ```
+
+    **Common query parameters:**
+
+    - `query` - Text search across title and location
+    - `propertyType` - Filter by type (e.g., `departamento`, `casa`, `local`)
+    - `listingType` - Filter by operation (e.g., `venta`, `alquiler`)
+    - `minPrice` / `maxPrice` - Price range filter
+    - `bedrooms` / `bathrooms` - Minimum number of rooms
+    - `location` - Search by city, province, or neighborhood
+    - `page` - Page number (default: 1)
+    - `limit` - Results per page (default: 10)
+
+    See the [List Properties](/api/properties/list) documentation for all available filters.
+  </Step>
+
+  <Step title="Get a single property">
+    Retrieve detailed information about a specific property by its ID:
+
+    ```bash
+    curl http://localhost:3000/api/properties/123
+    ```
+
+    Or by its SEO-friendly slug:
+
+    ```bash
+    curl http://localhost:3000/api/properties/slug/hermoso-departamento-palermo-4d
+    ```
+
+    Both endpoints return the complete property object with all images, location data, and features.
+  </Step>
+</Steps>
+
+## Authentication
+
+Some endpoints require authentication. The API uses session-based authentication with HTTP-only cookies.
+
+<Steps>
+  <Step title="Understand authentication">
+    The Inmobiliaria API uses Better Auth for authentication. Session cookies are automatically sent with requests when using a browser or properly configured HTTP client.
+
+    **Authentication levels:**
+
+    - **Public endpoints** - No authentication required (e.g., GET `/api/properties`)
+    - **User endpoints** - Requires any authenticated user (e.g., GET `/api/users/profile`)
+    - **Admin endpoints** - Requires admin role (e.g., POST `/api/properties`)
+
+    <Info>
+    All Better Auth endpoints are available at `/api/auth/*`. This includes sign in, sign up, and OAuth flows.
+    </Info>
+  </Step>
+
+  <Step title="Check your session">
+    Verify if you have an active session:
+
+    <CodeGroup>
+      ```bash cURL
+      curl http://localhost:3000/api/session \
+        --cookie-jar cookies.txt \
+        --cookie cookies.txt
+      ```
+
+      ```javascript JavaScript
+      const response = await fetch('http://localhost:3000/api/session', {
+        credentials: 'include'  // Important: include cookies
+      });
+      const data = await response.json();
+
+      if (data.data) {
+        console.log('Logged in as:', data.data.user.email);
+        console.log('Role:', data.data.user.role);
+      } else {
+        console.log('Not authenticated');
+      }
+      ```
+    </CodeGroup>
+
+    **Response with active session:**
+
+    ```json
+    {
+      "success": true,
+      "data": {
+        "user": {
+          "id": "user_123",
+          "name": "John Doe",
+          "email": "john@example.com",
+          "role": "user",
+          "emailVerified": true
+        },
+        "session": {
+          "id": "session_abc",
+          "expiresAt": "2026-04-03T00:00:00.000Z"
+        }
+      }
+    }
+    ```
+
+    **Response without session:**
+
+    ```json
+    {
+      "success": true,
+      "data": null
+    }
+    ```
+  </Step>
+
+  <Step title="Make authenticated requests">
+    When making authenticated requests, always include credentials:
+
+    <CodeGroup>
+      ```bash cURL
+      curl http://localhost:3000/api/users/profile \
+        -H "Content-Type: application/json" \
+        --cookie-jar cookies.txt \
+        --cookie cookies.txt
+      ```
+
+      ```javascript JavaScript (Fetch)
+      const response = await fetch('http://localhost:3000/api/users/profile', {
+        method: 'GET',
+        credentials: 'include',  // Required for cookies
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      ```
+
+      ```javascript JavaScript (Axios)
+      import axios from 'axios';
+
+      const api = axios.create({
+        baseURL: 'http://localhost:3000',
+        withCredentials: true  // Required for cookies
+      });
+
+      const response = await api.get('/api/users/profile');
+      ```
+    </CodeGroup>
+
+    <Warning>
+    Always set `credentials: 'include'` (fetch) or `withCredentials: true` (axios) to ensure session cookies are sent with your requests.
+    </Warning>
+  </Step>
+
+  <Step title="Handle authentication errors">
+    The API returns specific error responses for authentication failures:
+
+    **401 Unauthorized** - No valid session:
+    ```json
+    {
+      "success": false,
+      "message": "Authentication required"
+    }
+    ```
+
+    **403 Forbidden** - Valid session but insufficient permissions:
+    ```json
+    {
+      "success": false,
+      "message": "Admin access required"
+    }
+    ```
+
+    See the [Authentication](/api/authentication) guide for complete details on the auth flow.
+  </Step>
+</Steps>
+
+## Response format
+
+All API responses follow a consistent structure:
+
+**Successful response:**
+```json
+{
+  "success": true,
+  "data": {
+    // Response data here
+  }
+}
+```
+
+**Error response:**
+```json
+{
+  "success": false,
+  "message": "Error description"
+}
+```
+
+**Paginated response:**
+```json
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 47,
+    "limit": 10
+  }
+}
+```
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+Now that you've made your first API calls, explore these resources to build more advanced integrations:
 
 <CardGroup cols={2}>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api/overview"
+  >
+    Explore all available endpoints and their parameters
+  </Card>
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+  <Card
+    title="Authentication Guide"
+    icon="lock"
+    href="/auth/overview"
+  >
+    Learn about sign up, sign in, and OAuth flows
+  </Card>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+  <Card
+    title="Installation Guide"
+    icon="server"
+    href="/installation"
+  >
+    Set up your own development environment
+  </Card>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card
+    title="Property Images"
+    icon="images"
+    href="/api/properties/images"
+  >
+    Learn how to upload and manage property images
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

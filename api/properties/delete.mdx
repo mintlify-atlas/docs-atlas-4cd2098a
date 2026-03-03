@@ -1,0 +1,94 @@
+---
+title: "Delete Property"
+api: "DELETE /api/properties/:id"
+description: "Delete a property listing"
+---
+
+## Overview
+
+Permanently delete a property and all associated data including images, location, and characteristics. This operation cannot be undone.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. **Admin role required.**
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The property ID to delete.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the property was deleted successfully.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Success or error message.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X DELETE "https://api.example.com/api/properties/123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "message": "Property deleted successfully"
+}
+```
+
+## Error Responses
+
+### Not Found (404)
+
+```json
+{
+  "success": false,
+  "message": "Property not found"
+}
+```
+
+### Invalid ID (400)
+
+```json
+{
+  "success": false,
+  "message": "Invalid property ID"
+}
+```
+
+### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "message": "Unauthorized"
+}
+```
+
+## Cascading Deletes
+
+When a property is deleted, the following related records are automatically removed:
+
+- **Property Location**: The location record for the property
+- **Property Images**: All image records (metadata)
+- **Storage Files**: Physical image files (both large and thumbnail variants)
+- **Characteristics**: All property characteristics and values
+- **User Favorites**: Any user favorites referencing this property
+
+## Notes
+
+- This operation is **permanent** and cannot be undone
+- All associated database records are deleted via cascading foreign keys
+- Physical image files are deleted from storage (best-effort)
+- If image deletion fails, the database records are still removed (orphaned files may remain)
+- Consider implementing a "soft delete" (status change) instead for recoverable deletions

@@ -1,0 +1,422 @@
+---
+title: Production Deployment
+description: Security, configuration, and best practices for production environments
+---
+
+This guide covers production environment configuration, security considerations, and monitoring for the Inmobiliaria API.
+
+## Environment Variables
+
+Configure these environment variables in production:
+
+### Required Variables
+
+```bash
+# Node Environment
+NODE_ENV=production
+
+# Server Configuration
+PORT=3000
+
+# Database
+DATABASE_URL="postgres://user:password@host:port/database?sslmode=require"
+
+# Authentication (Better Auth)
+BETTER_AUTH_SECRET="your-secure-random-secret-here"
+BETTER_AUTH_URL="https://api.yourdomain.com"
+FRONTEND_URL="https://yourdomain.com"
+
+# Email Service (Resend)
+RESEND_API_KEY="re_xxxxxxxxxx"
+EMAIL_FROM="noreply@yourdomain.com"
+BUSINESS_EMAIL="contact@yourdomain.com"
+```
+
+### Storage Configuration
+
+#### Local Storage (Default)
+
+```bash
+STORAGE_DRIVER=local
+UPLOAD_DIR="/var/www/uploads"
+PUBLIC_UPLOAD_URL_BASE="https://yourdomain.com/uploads"
+```
+
+#### S3-Compatible Storage
+
+For AWS S3, Cloudflare R2, or Backblaze B2:
+
+```bash
+STORAGE_DRIVER=s3
+S3_REGION="us-east-1"
+S3_BUCKET="your-bucket-name"
+S3_ACCESS_KEY_ID="your-access-key"
+S3_SECRET_ACCESS_KEY="your-secret-key"
+S3_ENDPOINT="https://endpoint.example.com"  # Optional, for R2/B2
+PUBLIC_UPLOAD_URL_BASE="https://cdn.yourdomain.com"
+```
+
+### Optional Variables
+
+```bash
+# File Upload Limits
+MAX_UPLOAD_SIZE_MB=10
+MAX_UPLOAD_FILES=10
+
+# OAuth (Optional)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+```
+
+<Warning>
+  Never commit `.env` files to version control. Use environment variable management provided by your hosting platform.
+</Warning>
+
+## Security Configuration
+
+### HTTPS Required
+
+The API **must** be served over HTTPS in production:
+
+- Authentication cookies use `Secure` flag (HTTPS only)
+- Session cookies use `SameSite=none` for cross-origin requests
+- Database connections require SSL
+
+### CORS Configuration
+
+The API is configured to accept requests from `FRONTEND_URL`:
+
+```typescript title="src/index.ts:29"
+app.use(
+  cors({
+    origin: [process.env.FRONTEND_URL],
+    credentials: true, // Required for cookies
+  })
+);
+```
+
+<Note>
+  The `credentials: true` setting allows cookies to be sent cross-origin, required for Better Auth session management.
+</Note>
+
+### Proxy Configuration
+
+If behind a reverse proxy (nginx, Apache), enable trust proxy:
+
+```typescript title="src/index.ts:25"
+app.set("trust proxy", 1);
+```
+
+This ensures the API correctly handles forwarded headers from your proxy.
+
+### Authentication Secret
+
+Generate a strong random secret for `BETTER_AUTH_SECRET`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+<Warning>
+  Never use the default development secret in production. The application will log warnings if critical environment variables are missing.
+</Warning>
+
+## Database Configuration
+
+### Connection Pooling
+
+The API uses `pg` (node-postgres) which handles connection pooling automatically:
+
+```typescript title="src/db/index.ts:26"
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+```
+
+Default pool settings:
+- Maximum connections: 10
+- Idle timeout: 30 seconds
+
+Adjust if needed based on your traffic.
+
+### SSL Connections
+
+Always use SSL for production database connections:
+
+```bash
+DATABASE_URL="postgres://user:pass@host:port/db?sslmode=require"
+```
+
+The API automatically detects SSL requirement from the connection string.
+
+## Health Monitoring
+
+The API provides two health check endpoints:
+
+### Root Health Check
+
+```bash
+GET /
+```
+
+Returns API status and database health:
+
+```json
+{
+  "status": "ok",
+  "message": "Inmobiliaria API Server",
+  "timestamp": "2026-03-03T12:00:00.000Z",
+  "database": {
+    "status": "healthy",
+    "message": "Connected successfully"
+  }
+}
+```
+
+### Database Health Check
+
+```bash
+GET /health
+```
+
+Returns HTTP 200 if healthy, 503 if database unavailable:
+
+```json
+{
+  "status": "ok",
+  "database": {
+    "status": "healthy",
+    "message": "Connected successfully"
+  },
+  "timestamp": "2026-03-03T12:00:00.000Z"
+}
+```
+
+Use this endpoint for load balancer health checks and monitoring systems.
+
+## Logging Recommendations
+
+### Production Logging
+
+The API logs to stdout/stderr. Configure log aggregation:
+
+- **Structured logging**: Consider adding Winston or Pino
+- **Log levels**: Info for normal operations, error for failures
+- **Sensitive data**: Never log passwords, tokens, or secrets
+
+### Error Handling
+
+In production, detailed error messages are hidden from API responses:
+
+```typescript title="src/middleware/errorHandler.ts:42"
+if (process.env.NODE_ENV === "production" && statusCode === 500) {
+  // Hide detailed error in production
+  message = "An internal server error occurred";
+}
+```
+
+Full errors are still logged server-side for debugging.
+
+## Process Management
+
+### Using PM2 (Recommended)
+
+PM2 provides process management, automatic restarts, and monitoring:
+
+<Steps>
+  <Step title="Install PM2">
+    ```bash
+    npm install -g pm2
+    ```
+  </Step>
+
+  <Step title="Start Application">
+    ```bash
+    pm2 start dist/index.js --name inmobiliaria-api
+    ```
+  </Step>
+
+  <Step title="Configure Auto-Restart">
+    ```bash
+    pm2 startup
+    pm2 save
+    ```
+  </Step>
+
+  <Step title="Monitor Application">
+    ```bash
+    pm2 monit
+    pm2 logs inmobiliaria-api
+    ```
+  </Step>
+</Steps>
+
+### Using systemd
+
+Create a systemd service file `/etc/systemd/system/inmobiliaria-api.service`:
+
+```ini
+[Unit]
+Description=Inmobiliaria API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/inmobiliaria-api
+EnvironmentFile=/var/www/inmobiliaria-api/.env
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl enable inmobiliaria-api
+sudo systemctl start inmobiliaria-api
+sudo systemctl status inmobiliaria-api
+```
+
+### Using Docker
+
+Create a `Dockerfile`:
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY dist ./dist
+
+EXPOSE 3000
+
+CMD ["node", "dist/index.js"]
+```
+
+Build and run:
+
+```bash
+npm run build
+docker build -t inmobiliaria-api .
+docker run -d \
+  -p 3000:3000 \
+  --env-file .env.production \
+  --name inmobiliaria-api \
+  inmobiliaria-api
+```
+
+## Deployment Checklist
+
+Before deploying to production:
+
+- [ ] All environment variables configured
+- [ ] `NODE_ENV=production` set
+- [ ] Database migrations applied
+- [ ] Database seeded with initial data
+- [ ] HTTPS configured and working
+- [ ] CORS origins properly set
+- [ ] Email service tested (password reset, contact forms)
+- [ ] File uploads tested (local or S3)
+- [ ] Health endpoints responding
+- [ ] Process manager configured
+- [ ] Monitoring and logging set up
+- [ ] Database backups scheduled
+
+## Reverse Proxy Configuration
+
+### nginx Example
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name api.yourdomain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Serve uploaded files directly (if using local storage)
+    location /uploads {
+        alias /var/www/uploads;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+## Performance Optimization
+
+### Connection Pooling
+
+Adjust PostgreSQL pool size based on traffic:
+
+```typescript
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20, // Maximum pool connections
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+```
+
+### File Upload Location
+
+For high-traffic sites, use S3-compatible storage instead of local filesystem:
+- Better scalability
+- CDN integration
+- No server disk space concerns
+
+### Caching
+
+Consider adding Redis for:
+- Session storage
+- Rate limiting
+- Frequently accessed data
+
+## Troubleshooting
+
+### Application Won't Start
+
+1. Check environment variables: `node -e "console.log(process.env.DATABASE_URL)"`
+2. Verify database connectivity: `psql $DATABASE_URL`
+3. Check logs for specific errors
+4. Ensure `dist/` directory exists (run `npm run build`)
+
+### Authentication Issues
+
+1. Verify `BETTER_AUTH_SECRET` is set and consistent
+2. Check `FRONTEND_URL` matches your actual frontend URL
+3. Ensure HTTPS is working (cookies require secure context)
+4. Verify CORS configuration allows your frontend origin
+
+### Database Connection Errors
+
+1. Check `DATABASE_URL` format and credentials
+2. Verify database accepts connections from server IP
+3. Ensure SSL is configured if required
+4. Check connection pool isn't exhausted
+
+### File Upload Failures
+
+1. Verify storage driver configuration (`STORAGE_DRIVER`)
+2. Check upload directory permissions (local storage)
+3. Verify S3 credentials and bucket permissions (S3 storage)
+4. Check `MAX_UPLOAD_SIZE_MB` setting

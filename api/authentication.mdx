@@ -1,0 +1,256 @@
+---
+title: 'Authentication'
+description: 'How to authenticate API requests using session cookies and middleware'
+---
+
+## Overview
+
+The Inmobiliaria API uses session-based authentication powered by Better Auth. Authentication is handled through HTTP-only session cookies that are automatically sent with each request.
+
+## Authentication Methods
+
+The API provides three middleware functions for different authentication requirements:
+
+### `requireAuth` - Authenticated Users
+
+Requires a valid user session. Used for endpoints that need any authenticated user.
+
+**Response on failure:**
+```json
+{
+  "success": false,
+  "message": "Authentication required"
+}
+```
+
+**Status code:** `401 Unauthorized`
+
+### `requireAdmin` - Admin Access
+
+Requires a valid user session with admin role. Used for administrative endpoints.
+
+**Response on authentication failure:**
+```json
+{
+  "success": false,
+  "message": "Authentication required"
+}
+```
+
+**Response on authorization failure:**
+```json
+{
+  "success": false,
+  "message": "Admin access required"
+}
+```
+
+**Status codes:** 
+- `401 Unauthorized` - No valid session
+- `403 Forbidden` - Valid session but not an admin
+
+### `optionalAuth` - Public Endpoints
+
+Does not require authentication but will attach user data if a valid session exists. Used for public endpoints that have different behavior for authenticated users.
+
+This middleware never fails - it simply continues with or without user data.
+
+## Session Cookies
+
+Better Auth uses session cookies with the following characteristics:
+
+- **Cookie prefix:** `inmobiliaria` (or configured prefix)
+- **HTTP-only:** Yes (cannot be accessed via JavaScript)
+- **Secure:** Yes in production (HTTPS only)
+- **SameSite:** Configured based on environment
+- **Credentials required:** Must include credentials in requests
+
+## Making Authenticated Requests
+
+### Using cURL
+
+Include the session cookie in your request:
+
+```bash
+curl -X GET https://api.example.com/api/users/profile \
+  -H "Content-Type: application/json" \
+  -b "better_call_token=your-session-token" \
+  --cookie-jar cookies.txt \
+  --cookie cookies.txt
+```
+
+### Using JavaScript Fetch
+
+Ensure credentials are included:
+
+```javascript
+fetch('https://api.example.com/api/users/profile', {
+  method: 'GET',
+  credentials: 'include',  // Important!
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+```
+
+### Using Axios
+
+Configure axios to send credentials:
+
+```javascript
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'https://api.example.com',
+  withCredentials: true  // Important!
+});
+
+const response = await api.get('/api/users/profile');
+```
+
+## Getting Session Information
+
+Retrieve the current session and user information:
+
+```bash
+GET /api/session
+```
+
+**Response with active session:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "user_123",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "emailVerified": true,
+      "image": null,
+      "role": "user",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-03-03T00:00:00.000Z"
+    },
+    "session": {
+      "id": "session_abc",
+      "expiresAt": "2026-04-03T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Response without session:**
+
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
+## User Object Structure
+
+When authenticated, the user object attached to requests contains:
+
+<ResponseField name="id" type="string" required>
+  Unique user identifier
+</ResponseField>
+
+<ResponseField name="email" type="string" required>
+  User's email address
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  User's display name
+</ResponseField>
+
+<ResponseField name="role" type="string" required>
+  User role: either `"user"` or `"admin"`
+</ResponseField>
+
+## Authentication Flow
+
+The authentication middleware follows this process:
+
+1. **Extract session** from request headers (includes cookies)
+2. **Validate session** using Better Auth
+3. **Fetch user data** from database including role information
+4. **Attach user object** to request for use in route handlers
+5. **Check authorization** (for `requireAdmin` only)
+
+From `src/middleware/auth.ts:20-74`:
+
+```typescript
+const session = await auth.api.getSession({
+  headers: new Headers(req.headers as Record<string, string>),
+});
+
+if (!session) {
+  return res.status(401).json({
+    success: false,
+    message: "Authentication required",
+  });
+}
+
+// Fetch complete user data including role from database
+const userWithRole = await db.query.users.findFirst({
+  where: eq(users.id, session.user.id),
+  columns: {
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+  },
+});
+
+req.user = {
+  id: userWithRole.id,
+  email: userWithRole.email,
+  name: userWithRole.name || undefined,
+  role: userWithRole.role || "user",
+};
+```
+
+## Better Auth Endpoints
+
+Authentication is handled by Better Auth at:
+
+```
+/api/auth/*
+```
+
+These endpoints include:
+
+- `/api/auth/signin` - Sign in
+- `/api/auth/signup` - Sign up
+- `/api/auth/signout` - Sign out
+- `/api/auth/callback/*` - OAuth callbacks
+
+Refer to the [Better Auth documentation](https://better-auth.com) for complete authentication endpoint details.
+
+## CORS Requirements
+
+For authentication to work correctly:
+
+1. **Frontend URL must be configured** via `FRONTEND_URL` environment variable
+2. **Credentials must be included** in all requests (`credentials: true` in CORS)
+3. **Requests must use HTTPS** in production for secure cookies
+
+## Common Authentication Errors
+
+| Status Code | Message | Cause |
+|-------------|---------|-------|
+| 401 | Authentication required | No valid session found |
+| 401 | Invalid session | Session validation failed |
+| 403 | Admin access required | User is not an admin |
+| 403 | Access denied | Authorization check failed |
+| 404 | User not found | Session valid but user doesn't exist in database |
+
+## Security Considerations
+
+- Session cookies are HTTP-only and cannot be accessed via JavaScript
+- The API uses `trust proxy` setting for proper IP detection behind proxies
+- Sessions expire based on Better Auth configuration
+- Admin endpoints have dual checks: authentication + authorization
+- Passwords and sensitive data are never exposed in API responses
